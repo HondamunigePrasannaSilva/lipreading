@@ -19,13 +19,15 @@ class vocadataset(Dataset):
         
         #get voice names and labels = sentences
         self.keys = list(self.seq_index)
+        
         self.labels = self.getlabels()
         
         # set seed to 0 to select train/val/test set
         random.seed(0)
-        self.index = random.sample(list(range(1,11)), k=4) # sample 4 index, [val_1, val_2, test_1, test_2]
-
+        self.index = random.sample(list(range(0,12)), k=4) # sample 4 index, [ test_1, test_2, val_1, val_2]
+        print(self.index)# for debug
         self.type = type
+        self.landmark = landmark
 
         self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
         
@@ -52,31 +54,48 @@ class vocadataset(Dataset):
             method that returns vertex given the type and index
         """
         # get list of seq index!
-        idx = self.trainIndex[index]
+        if(type == "train"):
+            idx = self.trainIndex[index]
+        elif(type == "test"):
+            idx = self.testIndex[index]
+        elif(type == "val"):
+            idx = self.valIndex[index]
+        else:
+            print("Type must be: train, test or val")
+            return
+        
         voice_idx, sentence_idx = int(idx/40), idx%40
         si = list(self.seq_index[self.keys[voice_idx]])
+        si.sort()
 
         # get seq index of the voice and trasform it in a list
         seq_idx = list(self.seq_index[self.keys[voice_idx]][si[sentence_idx]].values())
 
-        
-
-
-
-
         # get list of vertex
+        vertex = self.face_vert[seq_idx]
 
-        # return the vertex
-
-
-        return 0
+        return vertex
     
     def getLabel(self, index, type = "train"):
         """
             method that returns the label(sentence) given the type and index
         """
+        # get list of seq index!
+        if(type == "train"):
+            idx = self.trainIndex[index]
+        elif(type == "test"):
+            idx = self.testIndex[index]
+        elif(type == "val"):
+            idx = self.valIndex[index]
+        else:
+            print("Type must be: train, test or val")
+            return
+        
+        voice_idx, sentence_idx = int(idx/40), idx%40
+        sentence = self.labels[self.keys[voice_idx]][sentence_idx]
 
-        return 0
+        return sentence
+        
     
     def getLandmark(self, vertex):
         """
@@ -103,33 +122,27 @@ class vocadataset(Dataset):
         return train_index, test_index, val_index
         
     def __getitem__(self, index):
-
         
-        if(self.type == "train"):
-            #prova
+        vertex = self.getVertex(index, self.type)
+        label = self.getLabel(index, self.type)
+        
+        if self.landmark == True:
+            return vertex, label
+        
+        return 0
 
-            return
-        elif(self.type == "test"):
-            return
-        elif(self.type == "val"):
-            return
-        else:
-            print("Error: type should be: train, test or val")
-            return
+    def __len__(self, type):
 
-
-    def __len__(self):
-
-        if self.type == "train":
-            train_idx = [item for item in list(range(1,13)) if item not in self.index] #get voice index of train
+        if type == "train":
+            train_idx = [item for item in list(range(0,12)) if item not in self.index] #get voice index of train
             count = 0
             for i in train_idx:
                 count += len(self.labels[self.keys[i]])   # count num of sentence
-        elif self.type == "test":
+        elif type == "test":
             count = 0
             for i in self.index[:2]:
                 count += len(self.labels[self.keys[i]])   # count num of sentence
-        elif self.type == "val":
+        elif type == "val":
             count = 0
             for i in self.index[2:]:
                 count += len(self.labels[self.keys[i]])   # count num of sentence
@@ -143,3 +156,6 @@ class vocadataset(Dataset):
 
 
     
+trainset = vocadataset(type="test")
+
+print(trainset[0])

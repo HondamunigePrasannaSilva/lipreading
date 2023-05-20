@@ -13,6 +13,7 @@ kl = list(data2array_verts)
 d = {}
 for i in range(len(kl)):
     f = open("dataset/labels/"+str(kl[i])+".txt", "r")
+    print(f)
     l = []
     for j in range(40):
         l.append(f.readline())

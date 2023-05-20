@@ -19,7 +19,4 @@ for i in range(len(kl)):
     d[kl[i]] = l
 
 
-
-
-
 print("ciao")

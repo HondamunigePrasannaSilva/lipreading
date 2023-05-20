@@ -1,1 +1,3 @@
-dataset/
+dataset/*.npy
+dataset/*.pkl
+dataset/labels/*.txt

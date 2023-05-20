@@ -51,6 +51,23 @@ class vocadataset(Dataset):
         """
             method that returns vertex given the type and index
         """
+        # get list of seq index!
+        idx = self.trainIndex[index]
+        voice_idx, sentence_idx = int(idx/40), idx%40
+        si = list(self.seq_index[self.keys[voice_idx]])
+
+        # get seq index of the voice and trasform it in a list
+        seq_idx = list(self.seq_index[self.keys[voice_idx]][si[sentence_idx]].values())
+
+        
+
+
+
+
+        # get list of vertex
+
+        # return the vertex
+
 
         return 0
     

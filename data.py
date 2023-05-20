@@ -55,7 +55,7 @@ class vocadataset(Dataset):
         val_index = result_list[(2*40):]
         
         if(self.type == "train"):
-
+            #prova
             return
         elif(self.type == "test"):
             return
@@ -64,12 +64,6 @@ class vocadataset(Dataset):
         else:
             print("Error: type should be: train, test or val")
             return
-        
-
-        
-
-        #prova
-
 
 
     def __len__(self):

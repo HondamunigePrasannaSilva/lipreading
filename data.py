@@ -7,7 +7,11 @@ import random
 
 class vocadataset(Dataset):
 
-    def __init__(self, type):
+    def __init__(self, type="train", landmark = True):
+        """
+            - type : "test", "train" or "val".Default type = "train"
+            - landmark: if True returns landmark, if false returns the vertex. Default = landmark = True
+        """
         # read vertex from data_verts.npy file and seq to index from seq_to_idx
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
         self.face_vert =  torch.from_numpy(self.face_vert_mmap)
@@ -23,10 +27,13 @@ class vocadataset(Dataset):
 
         self.type = type
 
+        self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
+        
+
 
     def getlabels(self):
         """
-            method that returns a dict. key:voice_name, value: sentence, 40 sentence for each voice
+            - method that returns a dict. key:voice_name, value: sentence, 40 sentence for each voice
         """
         kl = list(self.seq_index)   # get key(voice) names
         d = {}
@@ -39,10 +46,31 @@ class vocadataset(Dataset):
             d[kl[i]] = l
         
         return d
+
+    def getVertex(self, index, type = "train"):
+        """
+            method that returns vertex given the type and index
+        """
+
+        return 0
     
+    def getLabel(self, index, type = "train"):
+        """
+            method that returns the label(sentence) given the type and index
+        """
 
-    def __getitem__(self, index):
+        return 0
+    
+    def getLandmark(self, vertex):
+        """
+            method that return the landmarks given the vertex
+        """
 
+
+    def getTrainIndex(self):
+        """
+            - Method that return the index of train, test and validation set
+        """
         label_len = self.__len__("train")+self.__len__("test")+self.__len__("val")
         result_list = []
 
@@ -51,11 +79,18 @@ class vocadataset(Dataset):
             result_list.extend(list(range(num*40, (num+1)*40, 1)))
 
         train_index  = [item for item in list(range(label_len)) if item not in result_list]
+
         test_index = result_list[0:(2*40)]
         val_index = result_list[(2*40):]
+
+        return train_index, test_index, val_index
+        
+    def __getitem__(self, index):
+
         
         if(self.type == "train"):
             #prova
+
             return
         elif(self.type == "test"):
             return

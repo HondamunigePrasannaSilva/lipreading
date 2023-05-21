@@ -7,10 +7,11 @@ import random
 
 class vocadataset(Dataset):
 
-    def __init__(self, type="train", landmark = True):
+    def __init__(self, type="train", landmark = True, index=None):
         """
             - type : "test", "train" or "val".Default type = "train"
             - landmark: if True returns landmark, if false returns the vertex. Default = landmark = True
+            - index: test and validation voice index. Default=None, it's selected randomly!
         """
         # read vertex from data_verts.npy file and seq to index from seq_to_idx
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
@@ -19,20 +20,21 @@ class vocadataset(Dataset):
         
         #get voice names and labels = sentences
         self.keys = list(self.seq_index)
-        
         self.labels = self.getlabels()
         
-        # set seed to 0 to select train/val/test set
-        random.seed(0)
-        self.index = random.sample(list(range(0,12)), k=4) # sample 4 index, [ test_1, test_2, val_1, val_2]
+        # test and validation index can be set manually
+        if index is not None:
+            self.index = index
+        else:
+            random.seed(0) # set seed to 0 to select train/val/test set
+            self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
+
         print(self.index)# for debug
         self.type = type
         self.landmark = landmark
 
         self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
         
-
-
     def getlabels(self):
         """
             - method that returns a dict. key:voice_name, value: sentence, 40 sentence for each voice
@@ -63,13 +65,17 @@ class vocadataset(Dataset):
         else:
             print("Type must be: train, test or val")
             return
+
+        voice_idx, sentence_idx = int(idx/40), idx%40   #TODO: trovare un modo divero per accedere
         
-        voice_idx, sentence_idx = int(idx/40), idx%40
-        si = list(self.seq_index[self.keys[voice_idx]])
-        si.sort()
+        sentence_idx += 1   # sentence name start from 01 not from 00
+        if(sentence_idx < 10):
+            sentence_idx = f"sentence0{sentence_idx}"
+        else:
+            sentence_idx = f"sentence{sentence_idx}"
 
         # get seq index of the voice and trasform it in a list
-        seq_idx = list(self.seq_index[self.keys[voice_idx]][si[sentence_idx]].values())
+        seq_idx = list(self.seq_index[self.keys[voice_idx]][sentence_idx].values())
 
         # get list of vertex
         vertex = self.face_vert[seq_idx]
@@ -95,13 +101,11 @@ class vocadataset(Dataset):
         sentence = self.labels[self.keys[voice_idx]][sentence_idx]
 
         return sentence
-        
-    
+         
     def getLandmark(self, vertex):
         """
             method that return the landmarks given the vertex
         """
-
 
     def getTrainIndex(self):
         """
@@ -128,8 +132,8 @@ class vocadataset(Dataset):
         
         if self.landmark == True:
             return vertex, label
-        
-        return 0
+        else:
+            return vertex, label
 
     def __len__(self, type):
 
@@ -151,11 +155,8 @@ class vocadataset(Dataset):
             return
 
         return count
-
-
-
-
     
 trainset = vocadataset(type="test")
 
 print(trainset[0])
+print("ciao")

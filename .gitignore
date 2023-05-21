@@ -1,3 +1,6 @@
 dataset/*.npy
 dataset/*.pkl
+dataset/*.ply
 dataset/labels/*.txt
+dataset/mesh/*.ply
+img/*.png

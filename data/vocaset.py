@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import random
 import trimesh
-from getlandmark import *
+from data.getlandmark import *
 
 
 # TODO: migliore getindex!
@@ -34,7 +34,7 @@ class vocadataset(Dataset):
             random.seed(0) # set seed to 0 to select train/val/test set
             self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
 
-        print(self.index)# for debug
+        #print(self.index)
         self.type = type
         self.landmark = landmark
 
@@ -72,7 +72,7 @@ class vocadataset(Dataset):
             return
 
         voice_idx, sentence_idx = int(idx/40), idx%40   #TODO: trovare un modo divero per accedere
-        print(self.keys[voice_idx])
+        #print(self.keys[voice_idx])
         sentence_idx += 1   # sentence name start from 01 not from 00
         if(sentence_idx < 10):
             sentence_idx = f"sentence0{sentence_idx}"
@@ -156,7 +156,7 @@ class vocadataset(Dataset):
         vertex = self.getVertex(index, self.type)
         label = self.getLabel(index, self.type)
         
-        if self.landmark == True:
+        if self.landmark == False:
             return vertex, label
         else:
             landmark = self.getLandmark(vertex, index, self.type)
@@ -183,10 +183,3 @@ class vocadataset(Dataset):
 
         return count
     
-
-
-testset = vocadataset("test", landmark=False)
-land, label = testset[0]
-
-
-print("cao")

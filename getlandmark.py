@@ -72,7 +72,7 @@ def get_landmarks(vertices, template):
 
 
 
-v  = trimesh.load("dataset/FaceTalk_170725_00137_TA.ply", process=False)
+"""v  = trimesh.load("dataset/FaceTalk_170725_00137_TA.ply", process=False)
 face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+', allow_pickle=False, max_header_size=30000)
 x = torch.from_numpy(face_vert_mmap)
 
@@ -80,4 +80,4 @@ land = get_landmarks(x[1000],v)
 
 plt.scatter(land[:,0], land[:,1], marker='.')
 plt.savefig("prova_2.png")
-print("ciao")
+print("ciao")"""

@@ -4,6 +4,11 @@ import pickle
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import random
+import trimesh
+from getlandmark import *
+
+
+# TODO: migliore getindex!
 
 class vocadataset(Dataset):
 
@@ -67,7 +72,7 @@ class vocadataset(Dataset):
             return
 
         voice_idx, sentence_idx = int(idx/40), idx%40   #TODO: trovare un modo divero per accedere
-        
+        print(self.keys[voice_idx])
         sentence_idx += 1   # sentence name start from 01 not from 00
         if(sentence_idx < 10):
             sentence_idx = f"sentence0{sentence_idx}"
@@ -102,10 +107,31 @@ class vocadataset(Dataset):
 
         return sentence
          
-    def getLandmark(self, vertex):
+    def getLandmark(self, vertex, index, type):
         """
             method that return the landmarks given the vertex
         """
+        # get list of seq index!
+        if(type == "train"):
+            idx = self.trainIndex[index]
+        elif(type == "test"):
+            idx = self.testIndex[index]
+        elif(type == "val"):
+            idx = self.valIndex[index]
+        else:
+            print("Type must be: train, test or val")
+            return
+        
+        voice_idx = int(idx/40)   #TODO: trovare un modo divero per accedere
+        voice_name = self.keys[voice_idx]
+
+        v  = trimesh.load(f"dataset/mesh/{voice_name}.ply", process=False)
+        landmarks = torch.Tensor(size=[vertex.shape[0], 68, 3])
+        
+        for i in range(vertex.shape[0]):
+            landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
+
+        return landmarks
 
     def getTrainIndex(self):
         """
@@ -133,7 +159,8 @@ class vocadataset(Dataset):
         if self.landmark == True:
             return vertex, label
         else:
-            return vertex, label
+            landmark = self.getLandmark(vertex, index, self.type)
+            return landmark, label
 
     def __len__(self, type):
 
@@ -156,7 +183,10 @@ class vocadataset(Dataset):
 
         return count
     
-trainset = vocadataset(type="test")
 
-print(trainset[0])
-print("ciao")
+
+testset = vocadataset("test", landmark=False)
+land, label = testset[0]
+
+
+print("cao")

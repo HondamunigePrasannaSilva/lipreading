@@ -10,10 +10,11 @@ Punti da trattare al ricevimento 30/06:
 [] Mostrare il getlandmark per capire se va bene. cosa sono i file flame?
 
 
-
-
-
 To do list!
 
 [x] Create data preprocess pipeline
 [x] Create tutorial for ctcloss
+[ ] Put sentences in lower case
+[ ] Remove \n from the labels
+[ ] Normalizing data
+[ ] Remove points

@@ -50,7 +50,7 @@ class vocadataset(Dataset):
             f = open("dataset/labels/"+str(kl[i])+".txt", "r")
             l = []
             for j in range(40): #TODO 40 hardcoded, fixme!
-                l.append(f.readline())
+                l.append(f.readline().lower().replace('\n', ''))
 
             d[kl[i]] = l
         

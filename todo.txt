@@ -16,5 +16,9 @@ To do list!
 [x] Create tutorial for ctcloss
 [x] Put sentences in lower case
 [x] Remove \n from the labels
-[ ] Normalizing data
-[ ] Remove points
+[x] Remove points
+[x] Insert get only mouth landmarks function
+
+
+
+[-] Normalizing data, already normalized

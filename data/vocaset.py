@@ -12,11 +12,12 @@ from data.getlandmark import *
 
 class vocadataset(Dataset):
 
-    def __init__(self, type="train", landmark = True, index=None):
+    def __init__(self, type="train", landmark = True, index=None, mouthOnly = False):
         """
             - type : "test", "train" or "val".Default type = "train"
             - landmark: if True returns landmark, if false returns the vertex. Default = landmark = True
             - index: test and validation voice index. Default=None, it's selected randomly!
+            - mouthOnly: get only mouth landmark!
         """
         # read vertex from data_verts.npy file and seq to index from seq_to_idx
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
@@ -26,6 +27,7 @@ class vocadataset(Dataset):
         #get voice names and labels = sentences
         self.keys = list(self.seq_index)
         self.labels = self.getlabels()
+        self.mouthonly = mouthOnly
         
         # test and validation index can be set manually
         if index is not None:
@@ -50,7 +52,10 @@ class vocadataset(Dataset):
             f = open("dataset/labels/"+str(kl[i])+".txt", "r")
             l = []
             for j in range(40): #TODO 40 hardcoded, fixme!
-                l.append(f.readline().lower().replace('\n', ''))
+                sent = f.readline()
+                sent = sent.lower().replace('\n', '')
+                sent = sent.replace('.', '')
+                l.append(sent)
 
             d[kl[i]] = l
         
@@ -133,6 +138,14 @@ class vocadataset(Dataset):
 
         return landmarks
 
+    def getOnlyMouthlandmark(self, landmarks):
+
+        # selecting the landmaark that involves mouth movments!
+        l = [i for i in range(1,18)]+[i for i in range(49,68)]
+        
+        return landmarks[l]
+
+
     def getTrainIndex(self):
         """
             - Method that return the index of train, test and validation set
@@ -160,6 +173,9 @@ class vocadataset(Dataset):
             return vertex, label
         else:
             landmark = self.getLandmark(vertex, index, self.type)
+            if self.mouthonly == True:
+                landmark = self.getOnlyMouthlandmark(landmark)
+            
             return landmark, label
 
     def __len__(self, type):

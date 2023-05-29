@@ -139,10 +139,13 @@ class vocadataset(Dataset):
         return landmarks
 
     def getOnlyMouthlandmark(self, landmarks):
-
+        """
+        Function to get only landmark that involves mouth movments!
+        """
         # selecting the landmaark that involves mouth movments!
         l = [i for i in range(1,18)]+[i for i in range(49,68)]
         
+        #return landmarks[:,l,0:2]  # to get only x and y
         return landmarks[:,l,:]
 
 

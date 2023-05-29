@@ -44,7 +44,7 @@ def plot_3d_point(x, y, z):
 
 
 def visualize_rotate(data):
-    x_eye, y_eye, z_eye = 1.25, 1.25, 0.8
+    x_eye, y_eye, z_eye = 1, 1, 1
     frames=[]
 
     def rotate_z(x, y, z, theta):
@@ -89,3 +89,18 @@ def pcshow(xs,ys,zs):
                       color='DarkSlateGrey')),
                       selector=dict(mode='markers'))
     fig.show()
+
+def process_string(input_string):
+    output_string = ""
+    current_char = ""
+
+    for char in input_string:
+        if char != current_char:
+            if char.isalpha() or char == '0':
+                if char == '0':
+                    output_string += ' '
+                else:
+                    output_string += char   
+            current_char = char
+
+    return output_string.strip()

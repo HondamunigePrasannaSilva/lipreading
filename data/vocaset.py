@@ -143,7 +143,7 @@ class vocadataset(Dataset):
         # selecting the landmaark that involves mouth movments!
         l = [i for i in range(1,18)]+[i for i in range(49,68)]
         
-        return landmarks[l]
+        return landmarks[:,l,:]
 
 
     def getTrainIndex(self):

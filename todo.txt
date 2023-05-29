@@ -14,7 +14,7 @@ To do list!
 
 [x] Create data preprocess pipeline
 [x] Create tutorial for ctcloss
-[ ] Put sentences in lower case
-[ ] Remove \n from the labels
+[x] Put sentences in lower case
+[x] Remove \n from the labels
 [ ] Normalizing data
 [ ] Remove points

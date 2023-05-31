@@ -5,3 +5,4 @@ dataset/labels/*.txt
 dataset/mesh/*.ply
 img/*.png
 __pycache__/
+models/

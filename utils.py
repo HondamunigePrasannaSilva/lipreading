@@ -97,7 +97,7 @@ def process_string(input_string):
     for char in input_string:
         if char != current_char:
             if char.isalpha() or char == '0':
-                if char == '0':
+                if char == ' ':
                     output_string += ' '
                 else:
                     output_string += char   

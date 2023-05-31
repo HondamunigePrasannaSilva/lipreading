@@ -29,6 +29,14 @@ class vocadataset(Dataset):
         self.labels = self.getlabels()
         self.mouthonly = mouthOnly
         
+
+        l = ['FaceTalk_170811_03274_TA', 'FaceTalk_170809_00138_TA']
+        ind = ['sentence24', 'sentence32']
+        self.labels[l[0]][24] = self.labels[l[0]][0]
+        self.labels[l[1]][32] = self.labels[l[1]][0]
+        self.seq_index[l[0]]['sentence24'] = self.seq_index[l[0]]['sentence01']
+        self.seq_index[l[1]]['sentence32'] = self.seq_index[l[1]]['sentence01']
+
         # test and validation index can be set manually
         if index is not None:
             self.index = index
@@ -153,7 +161,7 @@ class vocadataset(Dataset):
         """
             - Method that return the index of train, test and validation set
         """
-        label_len = self.__len__("train")+self.__len__("test")+self.__len__("val")
+        label_len = self.getlen("train")+self.getlen("test")+self.getlen("val")
         result_list = []
 
         #get index of test and validation
@@ -180,9 +188,7 @@ class vocadataset(Dataset):
                 landmark = self.getOnlyMouthlandmark(landmark)
             
             return landmark, label
-
-    def __len__(self, type):
-
+    def getlen(self, type):
         if type == "train":
             train_idx = [item for item in list(range(0,12)) if item not in self.index] #get voice index of train
             count = 0
@@ -196,9 +202,63 @@ class vocadataset(Dataset):
             count = 0
             for i in self.index[2:]:
                 count += len(self.labels[self.keys[i]])   # count num of sentence
+        return count
+
+    def __len__(self):
+        
+        if self.type == "train":
+            train_idx = [item for item in list(range(0,12)) if item not in self.index] #get voice index of train
+            count = 0
+            for i in train_idx:
+                count += len(self.labels[self.keys[i]])   # count num of sentence
+        elif self.type == "test":
+            count = 0
+            for i in self.index[:2]:
+                count += len(self.labels[self.keys[i]])   # count num of sentence
+        elif self.type == "val":
+            count = 0
+            for i in self.index[2:]:
+                count += len(self.labels[self.keys[i]])   # count num of sentence
         else:
             print("Error: type should be: train, test or val")
             return
 
         return count
-    
+
+def collate_fn(batch):
+
+    data_batch, label_batch = zip(*batch)
+
+    # Get the sequences and their lengths
+    sequences = [sample for sample in batch]
+    lengths = torch.tensor([sample[0].size(0) for sample in batch])
+
+
+    # Find the maximum length in the batch
+    max_length = max(lengths)
+
+    repeated_sequences = []
+    for sample in sequences:
+        lastLandmark = sample[0][-1:,:]
+        repeated_lm = lastLandmark.repeat(max_length-sample[0].shape[0], 1, 1)
+        result_tensor = torch.cat((sample[0], repeated_lm), dim=0)
+        repeated_sequences.append(result_tensor)
+
+
+    #lab = torch.tensor([sample[1] for sample in batch])
+
+    # Stack the repeated sequences
+    padded_sequences = torch.stack(repeated_sequences, dim=0)
+
+    return padded_sequences, label_batch
+
+
+
+
+"""testset = vocadataset("test", landmark=True)
+
+dataloader = DataLoader(testset, batch_size=32, collate_fn=collate_fn)
+
+land, label = next(iter(dataloader))
+
+"""

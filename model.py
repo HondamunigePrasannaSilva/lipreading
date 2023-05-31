@@ -24,7 +24,7 @@ class Encoder(nn.Module):
         
         self.hid_dim = hid_dim
         
-        self.rnn = nn.RNN(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True)
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True)
         
     def forward(self, x):
 
@@ -49,7 +49,7 @@ class Decoder(nn.Module):
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.rnn = nn.RNN(input_size=1, hidden_size=128, bidirectional=True, batch_first=True)
+        self.rnn = nn.GRU(input_size=1, hidden_size=128, bidirectional=True, batch_first=True)
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
     

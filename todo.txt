@@ -1,13 +1,5 @@
 
 
-Punti da trattare al ricevimento 30/06:
-
-[] Utilizzare un modello RNN seq-to-seq con encoder e decoder autoregressivi, secondo il modello di "machine traslation"
-[] Utilizzare tutorial ctcloss per mostrare la robustezza del training ad errori dell'input, ecc..
-[] Discutere su come passare i dati al RNN.
-[] Embedding dei landmark?
-[] Che cosa usare? GRU? LSTM? Transformer? 
-[] Mostrare il getlandmark per capire se va bene. cosa sono i file flame?
 
 
 To do list!
@@ -18,7 +10,15 @@ To do list!
 [x] Remove \n from the labels
 [x] Remove points
 [x] Insert get only mouth landmarks function
+[ ] Provare LSTM
+[ ] Provare soltanto l'encoder
+[ ] Fare il training con batch
 
+[ ] Usare transformer
+[ ] Usare mesh extraendo le feature con spiral convolutional
+[ ] Usare il filtro per tirare fuori i punti della bocca
+
+[ ] Label non della stessa dimensione...
 
 
 [-] Normalizing data, already normalized

@@ -7,7 +7,7 @@ import numpy as np
 
 
 
-def create_vocabulary(blank = '-'):
+def create_vocabulary(blank):
     """
         Function that returns a vocabulary\n
         Attributes:
@@ -16,7 +16,7 @@ def create_vocabulary(blank = '-'):
         - stop: character used as end string 
 
     """
-    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ']
+    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-']
 
 
 def process_string(input_string):

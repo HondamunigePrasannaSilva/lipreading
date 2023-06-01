@@ -16,7 +16,7 @@ def vocabulary(blank = '-', start = '@', stop = '#'):
         - stop: character used as end string 
 
     """
-    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!','\'', start, stop, ' ']
+    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!', '\'', start, stop, ' ']
 
 
 def process_string(input_string):
@@ -106,7 +106,7 @@ def process_string(input_string):
     return output_string.strip()
 
 
-def chat_to_index_batch(label, vocabulary):
+def char_to_index_batch(label, vocabulary):
     #vocabulary = vocabulary(blank='-', start='@', stop='#')
     char_to_index = {char: index for index, char in enumerate(vocabulary)}
     labels = []

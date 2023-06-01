@@ -17,6 +17,7 @@ To do list!
 [ ] Usare transformer
 [ ] Usare mesh extraendo le feature con spiral convolutional
 [ ] Usare il filtro per tirare fuori i punti della bocca
+[ ] Aumentare numero di layer autoregressivi
 
 [ ] Label non della stessa dimensione...
 

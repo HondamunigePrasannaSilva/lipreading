@@ -106,7 +106,7 @@ def process_string(input_string):
     return output_string.strip()
 
 
-def chat_to_index_batch(label, vocabulary):
+def char_to_index_batch(label, vocabulary):
     #vocabulary = vocabulary(blank='-', start='@', stop='#')
     char_to_index = {char: index for index, char in enumerate(vocabulary)}
     labels = []

@@ -7,7 +7,7 @@ import numpy as np
 
 
 
-def vocabulary(blank = '-', start = '@', stop = '#'):
+def vocabulary(blank = '-'):
     """
         Function that returns a vocabulary\n
         Attributes:
@@ -16,7 +16,7 @@ def vocabulary(blank = '-', start = '@', stop = '#'):
         - stop: character used as end string 
 
     """
-    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!','\'', start, stop, ' ']
+    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ']
 
 
 def process_string(input_string):

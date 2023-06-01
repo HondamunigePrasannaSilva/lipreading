@@ -248,21 +248,11 @@ def collate_fn(batch):
         repeated_sequences.append(result_tensor)
 
 
-
-
     # Stack the repeated sequences
     padded_sequences = torch.stack(repeated_sequences, dim=0)
 
     return padded_sequences,lengths, padded_labels, lengths_labels
 
 
-
-"""
-testset = vocadataset("test", landmark=True)
-
-dataloader = DataLoader(testset, batch_size=32, collate_fn=collate_fn)
-
-landmark, len_landmark, label, len_label = next(iter(dataloader))
-"""
 
 

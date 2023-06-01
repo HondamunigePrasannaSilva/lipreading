@@ -233,6 +233,9 @@ def collate_fn(batch):
     sequences = [sample for sample in batch]
     lengths = torch.tensor([sample[0].size(0) for sample in batch])
 
+    lengths_labels = [len(item) for item in label_batch]
+    padded_labels = [item + item[len(item)-1] * (max(lengths_labels) - len(item)) for item in label_batch]
+    #padded_labels = torch.tensor(padded_labels)
 
     # Find the maximum length in the batch
     max_length = max(lengths)
@@ -245,20 +248,21 @@ def collate_fn(batch):
         repeated_sequences.append(result_tensor)
 
 
-    #lab = torch.tensor([sample[1] for sample in batch])
+
 
     # Stack the repeated sequences
     padded_sequences = torch.stack(repeated_sequences, dim=0)
 
-    return padded_sequences, label_batch
+    return padded_sequences,lengths, padded_labels, lengths_labels
 
 
 
-
-"""testset = vocadataset("test", landmark=True)
+"""
+testset = vocadataset("test", landmark=True)
 
 dataloader = DataLoader(testset, batch_size=32, collate_fn=collate_fn)
 
-land, label = next(iter(dataloader))
-
+landmark, len_landmark, label, len_label = next(iter(dataloader))
 """
+
+

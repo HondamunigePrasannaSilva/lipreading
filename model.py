@@ -66,7 +66,7 @@ class Decoder(nn.Module):
         #output = [seq len, batch size, hid dim * n directions]
         #hidden = [n layers * n directions, batch size, hid dim]
         
-        prediction = self.fc_out(output.squeeze(0))
+        prediction = self.fc_out(output)
         
         #prediction = [batch size, output dim]
         
@@ -116,6 +116,6 @@ class Seq2Seq(nn.Module):
             #get the highest predicted token from our predictions
             top1 = output.argmax(-1, keepdim=True) 
 
-            input = top1[:,:, None]
+            input = top1
         
         return outputs

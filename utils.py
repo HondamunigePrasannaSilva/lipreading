@@ -7,7 +7,7 @@ import numpy as np
 
 
 
-def vocabulary(blank = '-'):
+def create_vocabulary(blank = '-'):
     """
         Function that returns a vocabulary\n
         Attributes:
@@ -118,3 +118,4 @@ def char_to_index_batch(label, vocabulary):
 
 
     labels = torch.tensor(labels)
+    return labels

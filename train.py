@@ -24,7 +24,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 trainset = vocadataset("train", landmark=True)
-dataloader = DataLoader(trainset, batch_size=32, collate_fn=collate_fn)
+dataloader = DataLoader(trainset, batch_size=1, collate_fn=collate_fn)
 
 
 vocabulary = create_vocabulary(blank='@')
@@ -63,16 +63,13 @@ for epoch in range(num_epochs):
 
         output = model(landmarks, label)
         
-
-        input_lengths = torch.full((1,), output.size(0), dtype=torch.long)
-
-        #target_lengths = torch.full((target_tensor.size(0),), target_tensor.size(0), dtype=torch.long)
+        #input_lengths = torch.full((batch_size,), output.size(0), dtype=torch.long) Serve se le sequenze hanno lunghezze uguali
         
-        loss = ctc_loss(output, label, input_lengths, len_label)
+        loss = ctc_loss(output, label, len_landmark, len_label)
         loss.backward()
         optimizer.step()
 
-        if (epoch + 1) % 10 == 0:
+        if (epoch + 1) % 1 == 0:
             print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}")
             #e = torch.argmax(output, dim=2).squeeze(1)
             #output_sequence = ''.join([vocabulary[index] for index in e])

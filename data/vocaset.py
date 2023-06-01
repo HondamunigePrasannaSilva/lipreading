@@ -252,6 +252,7 @@ def collate_fn(batch):
     padded_sequences = torch.stack(repeated_sequences, dim=0)
 
     lengths_labels = torch.tensor(lengths_labels, dtype=torch.long)
+    #lengths = torch.tensor(lengths)
 
     return padded_sequences,lengths, padded_labels, lengths_labels
 

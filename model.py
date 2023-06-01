@@ -88,7 +88,7 @@ class Seq2Seq(nn.Module):
         #trg = [trg len, batch size]
  
         batch_size = trg.shape[0]
-        trg_len = src.shape[0]#FIXME Forse qui non ho passato i landmark con la dimensione del batch in testa
+        trg_len = src.shape[1]#FIXME Forse qui non ho passato i landmark con la dimensione del batch in testa
         trg_vocab_size = self.decoder.output_dim
         
         #tensor to store decoder outputs
@@ -96,26 +96,26 @@ class Seq2Seq(nn.Module):
         
         #last hidden state of the encoder is used as the initial hidden state of the decoder
         hidden = self.encoder(src)
-        hidden = hidden.unsqueeze(1)
+        #hidden = hidden.unsqueeze(1)
         
-        #first input to the decoder is the <sos> tokens
-        input = torch.tensor(31).unsqueeze(0).unsqueeze(0).unsqueeze(0)#trg[0,:] 31 is the index of <sos>
+        #first input to the decoder is the <blank> token
+        input = torch.full((batch_size , 1 , 1), 0, dtype=torch.long).to(self.device)
         
-        for t in range(1, trg_len):
+        for t in range(0, trg_len):
             
             #insert input token embedding, previous hidden state
             #receive output tensor (predictions) and new hidden
 
             output, hidden = self.decoder(input, hidden)
             
-            output = output.unsqueeze(0)#ADDED TO BE CHECKED
+            #output = output.unsqueeze(0)#ADDED TO BE CHECKED
 
             #place predictions in a tensor holding predictions for each token
-            outputs[t] = output
+            outputs[t] = output[:, 0]
             
             #get the highest predicted token from our predictions
-            top1 = output.argmax(2) 
+            top1 = output.argmax(-1, keepdim=True) 
 
-            input = top1.unsqueeze(0)
+            input = top1[:,:, None]
         
         return outputs

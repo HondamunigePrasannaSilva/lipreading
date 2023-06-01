@@ -95,6 +95,7 @@ class Seq2Seq(nn.Module):
         
         #first input to the decoder is the <sos> tokens
         input = torch.tensor(31).unsqueeze(0).unsqueeze(0).unsqueeze(0)#trg[0,:] 31 is the index of <sos>
+        input = torch.full((0,), output.size(0), dtype=torch.long)
         
         for t in range(1, trg_len):
             

@@ -42,10 +42,6 @@ model = Seq2Seq(enc, dec, 'cpu')
 
 
 
-
-
-
-
 # With batch
 
 # Define the CTC loss function

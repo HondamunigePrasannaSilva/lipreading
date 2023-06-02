@@ -10,16 +10,21 @@ To do list!
 [x] Remove \n from the labels
 [x] Remove points
 [x] Insert get only mouth landmarks function
-[ ] Provare LSTM
-[ ] Provare soltanto l'encoder
-[ ] Fare il training con batch
+[x] Fare il training con batch
+[x] Label non della stessa dimensione...
+[x] Aumentare numero di layer autoregressivi
 
+
+[ ] Provare LSTM
 [ ] Usare transformer
 [ ] Usare mesh extraendo le feature con spiral convolutional
 [ ] Usare il filtro per tirare fuori i punti della bocca
-[ ] Aumentare numero di layer autoregressivi
-
-[ ] Label non della stessa dimensione...
 
 
-[-] Normalizing data, already normalized
+
+x domani mattina
+
+[ ] Differenza tra i landmark
+[ ] Normalizing data, already normalized
+[ ] Provare soltanto l'encoder
+[ ] Indagare sul padding

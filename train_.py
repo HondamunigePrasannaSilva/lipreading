@@ -9,11 +9,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
-    'LANDMARK_DIM' : 68,
-    'INPUT_DIM' : 68*3,
+    'LANDMARK_DIM' : 36,
+    'INPUT_DIM' : 36*3,
     'HID_DIM' : 128,
     'BATCH_SIZE': 32,
-    'EPOCHS': 2
+    'EPOCHS': 100
 }
 
 
@@ -39,7 +39,7 @@ def model_pipeline():
 def create(config):
 
     #get dataloader
-    trainset = vocadataset("train", landmark=True)
+    trainset = vocadataset("train", landmark=True, mouthOnly=True)
     valset = vocadataset("val", landmark=True)
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8)
     valloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8)
@@ -77,7 +77,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
         real_sentences = []
         pred_sentences = []
 
-        progress_bar = tqdm.tqdm(total=len(trainloader), unit='step', leave=False)
+        progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
         for landmarks, len_landmark, label, len_label in trainloader:
 
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 

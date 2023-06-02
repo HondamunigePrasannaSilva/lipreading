@@ -16,7 +16,8 @@ def create_vocabulary(blank):
         - stop: character used as end string 
 
     """
-    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-'] + ['#']
+    #return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-'] + ['#']
+    return [blank] + list(string.ascii_lowercase) + [' '] + ['#']
 
 
 def process_string(input_string):

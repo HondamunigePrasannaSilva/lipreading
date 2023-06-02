@@ -99,7 +99,7 @@ class Seq2Seq(nn.Module):
         #hidden = hidden.unsqueeze(1)
         
         #first input to the decoder is the <blank> token
-        input = torch.full((batch_size , 1 , 1), 0, dtype=torch.long).to(self.device)
+        input = torch.full((batch_size , 1 , 1), 37, dtype=torch.long).to(self.device)
         
         for t in range(0, trg_len):
             

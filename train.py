@@ -47,12 +47,19 @@ ctc_loss = nn.CTCLoss()
 # Define the optimizer
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+#list to save sentences
+real_sentences = []
+pred_sentences = []
+
 # Training loop
-num_epochs = 100
+num_epochs = 2
 for epoch in range(num_epochs):
     for landmarks, len_landmark, label, len_label in dataloader:
         # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
         landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
+        #recover the targets without padding
+        label_list = label
+
         # label char to index
         label = char_to_index_batch(label, vocabulary)
 
@@ -72,7 +79,11 @@ for epoch in range(num_epochs):
 
         if (epoch + 1) % 1 == 0:
             print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}")
-            #e = torch.argmax(output, dim=2).squeeze(1)
-            #output_sequence = ''.join([vocabulary[index] for index in e])
-            #print(output_sequence)
+            real_sentences, pred_sentences = write_results(len_label, label_list, output, dataloader.batch_size, vocabulary, real_sentences, pred_sentences)
             torch.save(model.state_dict(), "models/model.pt")
+    
+
+    save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
+    real_sentences = []
+    pred_sentences = []
+    

@@ -13,7 +13,7 @@ hyper = {
     'INPUT_DIM' : 68*3,
     'HID_DIM' : 128,
     'BATCH_SIZE': 32,
-    'EPOCHS': 100
+    'EPOCHS': 2
 }
 
 
@@ -73,12 +73,19 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
 
     for epoch in range(config.EPOCHS):
 
+        #list to save sentences
+        real_sentences = []
+        pred_sentences = []
+
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step', leave=False)
         for landmarks, len_landmark, label, len_label in trainloader:
 
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
             
+            #variable to recover later the target sequences
+            label_list = label
+
             # label char to index
             label = char_to_index_batch(label, vocabulary)
 
@@ -101,6 +108,8 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
             progress_bar.set_description(f"Epoch {epoch+1}/{config.EPOCHS}")
             progress_bar.set_postfix(loss=loss.item())  # Update the loss value
             progress_bar.update(1)
+
+            real_sentences, pred_sentences = write_results(len_label, label_list, output, trainloader.batch_size, vocabulary, real_sentences, pred_sentences)
         
         # endfor batch 
 
@@ -109,6 +118,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
         
         # save the model
         torch.save(model.state_dict(), "models/model"+str(modeltitle)+".pt")
+        save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
     return np.mean(losses)
 

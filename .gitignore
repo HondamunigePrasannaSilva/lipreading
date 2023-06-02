@@ -7,3 +7,4 @@ img/*.png
 __pycache__/
 models/
 wandb/
+results/*.txt

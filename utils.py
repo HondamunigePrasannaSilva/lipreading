@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import torch
 import numpy as np
 
-
+import os
 
 def create_vocabulary(blank):
     """
@@ -16,7 +16,7 @@ def create_vocabulary(blank):
         - stop: character used as end string 
 
     """
-    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-']
+    return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-'] + ['#']
 
 
 def process_string(input_string):
@@ -119,3 +119,30 @@ def char_to_index_batch(label, vocabulary):
 
     labels = torch.tensor(labels)
     return labels
+
+def save_results(file_name, real_sentences, predicted_sentences, overwrite=False):
+    if overwrite:
+        if os.path.exists(file_name):
+            os.remove(file_name)
+        
+    f = open(file_name, "a")
+ 
+    for i in range(len(predicted_sentences)):
+        f.write(real_sentences[i]+"\n")
+        f.write(predicted_sentences[i]+"\n")
+        f.write("\n")
+    f.close() 
+    return
+
+def write_results(len_label, label_list, output, batch_size, vocabulary, real_sentences, pred_sentences):
+    len_label.cpu()
+    real_sentences_temp = [x[:len_label[i]] for i, x in enumerate(label_list)]
+    real_sentences = real_sentences + real_sentences_temp
+    output_cpu = output.detach().cpu()
+
+    for i in range(batch_size):
+        e = torch.argmax(output_cpu[:, i, :], dim=1)
+        output_sequence = ''.join([vocabulary[index] for index in e])
+        pred_sentences.append(output_sequence)
+    
+    return real_sentences, pred_sentences

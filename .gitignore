@@ -6,3 +6,4 @@ dataset/mesh/*.ply
 img/*.png
 __pycache__/
 models/
+wandb/

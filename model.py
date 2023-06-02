@@ -19,12 +19,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_dim, hid_dim):
+    def __init__(self, input_dim, hid_dim, num_layers):
         super().__init__()
         
         self.hid_dim = hid_dim
         
-        self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True)
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True, num_layers=num_layers)
         
     def forward(self, x):
 
@@ -34,7 +34,7 @@ class Encoder(nn.Module):
         out, hid = self.rnn(x)
         
         #out = [batch size, src len, hid dim * n directions]
-        #hid = [n directions, batch size, hid dim]
+        #hid = [n directions * num_layers, batch size, hid dim]
 
         #print("ENCODER: hid.shape: ", hid.shape)
         return hid
@@ -43,13 +43,13 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, output_dim, hid_dim):
+    def __init__(self, output_dim, hid_dim, num_layers):
         super().__init__()
         
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.rnn = nn.GRU(input_size=1, hidden_size=128, bidirectional=True, batch_first=True)
+        self.rnn = nn.GRU(input_size=1, hidden_size=128, bidirectional=True, batch_first=True, num_layers=num_layers)
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
     
@@ -57,7 +57,7 @@ class Decoder(nn.Module):
     def forward(self, input, hidden):
         
         #input = [batch size]
-        #hidden = [n directions, batch size, hid dim]
+        #hidden = [n directions*num_layers, batch size, hid dim]
         
         #input = [batch size, 1]
                 

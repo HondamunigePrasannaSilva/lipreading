@@ -13,14 +13,15 @@ hyper = {
     'INPUT_DIM' : 36*3,
     'HID_DIM' : 128,
     'BATCH_SIZE': 32,
-    'EPOCHS': 100
+    'EPOCHS': 100,
+    'NUM_LAYERS': 4
 }
 
 
 
 def model_pipeline():
 
-    with wandb.init(project="lip-reading", config=hyper):
+    with wandb.init(project="lip-reading", config=hyper, mode="disabled"):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -48,8 +49,8 @@ def create(config):
     vocabulary = create_vocabulary(blank='@')
 
     # define the models
-    enc = Encoder(config.INPUT_DIM, config.HID_DIM)
-    dec = Decoder(len(vocabulary), config.HID_DIM)
+    enc = Encoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS)
+    dec = Decoder(len(vocabulary), config.HID_DIM, config.NUM_LAYERS)
     model = Seq2Seq(enc, dec, device).to(device)
 
     # Define the CTC loss function

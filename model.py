@@ -119,3 +119,34 @@ class Seq2Seq(nn.Module):
             input = top1
         
         return outputs
+    
+
+class only_Decoder(nn.Module):
+    def __init__(self, input_dim, hid_dim, num_layers, output_dim):
+        super().__init__()
+        
+        self.output_dim = output_dim
+        self.hid_dim = hid_dim
+
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True, num_layers=num_layers)
+        
+        self.fc_out = nn.Linear(2*hid_dim, output_dim)
+    
+        
+    def forward(self, input):
+        
+        #input = [batch size]
+        #hidden = [n directions*num_layers, batch size, hid dim]
+        
+        #input = [batch size, 1]
+                
+        output, hidden = self.rnn(input.to(torch.float32))
+        
+        #output = [seq len, batch size, hid dim * n directions]
+        #hidden = [n layers * n directions, batch size, hid dim]
+        
+        prediction = self.fc_out(output)
+        
+        #prediction = [batch size, output dim]
+        
+        return prediction#, hidden

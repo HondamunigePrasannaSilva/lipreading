@@ -10,3 +10,5 @@ wandb/
 results/*.txt
 test2.ipynb
 prova.txt
+#test.ipynb
+train_copy.py

@@ -62,6 +62,7 @@ class vocadataset(Dataset):
             for j in range(40): #TODO 40 hardcoded, fixme!
                 sent = f.readline()
                 sent = sent.lower().replace('\n', '')
+                # TODO refactor this shit!
                 sent = sent.replace('.', '')
                 sent = sent.replace('?', '')
                 sent = sent.replace(',', '')
@@ -152,7 +153,11 @@ class vocadataset(Dataset):
         
         for i in range(vertex.shape[0]):
             landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
+         #   if(i > 0):
+                #landmarks[i] = torch.pow(landmarks[0]-landmarks[i],2)
+         #       landmarks[i] = landmarks[0]-landmarks[i]
 
+        #return torch.nn.functional.normalize(landmarks[1:], p=2, dim=1)
         return landmarks
 
     def getOnlyMouthlandmark(self, landmarks):

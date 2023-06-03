@@ -9,4 +9,3 @@ models/
 wandb/
 results/*.txt
 #test.ipynb
-train_copy.py

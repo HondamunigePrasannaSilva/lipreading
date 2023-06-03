@@ -8,4 +8,6 @@ __pycache__/
 models/
 wandb/
 results/*.txt
+test2.ipynb
+prova.txt
 #test.ipynb

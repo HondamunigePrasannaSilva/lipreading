@@ -127,7 +127,7 @@ class vocadataset(Dataset):
         voice_idx, sentence_idx = int(idx/40), idx%40
         sentence = self.labels[self.keys[voice_idx]][sentence_idx]
 
-        return sentence
+        return "#"+sentence
          
     def getLandmark(self, vertex, index, type):
         """

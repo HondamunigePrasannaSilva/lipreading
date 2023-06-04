@@ -17,7 +17,7 @@ def create_vocabulary(blank):
 
     """
     #return [blank] + list(string.ascii_lowercase) + ['.', '?', ',', '!',"’", "'", ';',':', ' ', '-'] + ['#']
-    return [' ']+[blank] + list(string.ascii_lowercase)
+    return [' ']+[blank]+['#']+ list(string.ascii_lowercase)
 
 
 def process_string(input_string):

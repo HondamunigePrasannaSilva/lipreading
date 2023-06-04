@@ -3,7 +3,7 @@ import torch
 import wandb
 from data.vocaset import *
 from utils import *
-from model import *
+from model_temp import *
 import tqdm 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -11,10 +11,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hyper = {
     'LANDMARK_DIM' : 36,
     'INPUT_DIM' : 36*3,
-    'HID_DIM' : 128,
+    'HID_DIM' : 512,
     'BATCH_SIZE': 32,
     'EPOCHS': 100,
-    'NUM_LAYERS': 4
+    'NUM_LAYERS': 4,
+    'EMB_DIM': 256
 }
 
 
@@ -49,6 +50,9 @@ def create(config):
     vocabulary = create_vocabulary(blank='@')
 
     # define the models
+    """enc = Encoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, config.EMB_DIM)
+    dec = Decoder(len(vocabulary), config.HID_DIM, config.NUM_LAYERS, config.EMB_DIM)
+    model = Seq2Seq(enc, dec, device).to(device)"""
     model = only_Decoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, len(vocabulary)).to(device)
 
     # Define the CTC loss function

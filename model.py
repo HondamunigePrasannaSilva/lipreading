@@ -131,21 +131,28 @@ class only_Decoder(nn.Module):
         self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True, num_layers=num_layers)
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
-    
+
+        self.tan = nn.Tanh()
         
-    def forward(self, input):
+        
+    def forward(self, input, len_):
         
         #input = [batch size]
         #hidden = [n directions*num_layers, batch size, hid dim]
         
         #input = [batch size, 1]
-                
-        output, hidden = self.rnn(input.to(torch.float32))
+        packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
+
+        output, hidden = self.rnn(packed_seq.to(torch.float32))
+
+        outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
         
         #output = [seq len, batch size, hid dim * n directions]
         #hidden = [n layers * n directions, batch size, hid dim]
         
-        prediction = self.fc_out(output)
+        prediction = self.fc_out(outputs.permute(1,0,2))
+
+        prediction = self.tan(prediction)
         
         #prediction = [batch size, output dim]
         

@@ -52,7 +52,7 @@ def create(config):
     model = only_Decoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, len(vocabulary)).to(device)
 
     # Define the CTC loss function
-    ctc_loss = nn.CTCLoss()
+    ctc_loss = nn.CTCLoss(blank=1)
 
     # Define the optimizer
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -95,9 +95,9 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
             len_label = len_label.to(device)
             optimizer.zero_grad()
 
-            output = model(landmarks)
+            output = model(landmarks,len_landmark )
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
-                        
+
             loss = ctc_loss(output, label, len_landmark, len_label)
             loss.backward()
             optimizer.step()

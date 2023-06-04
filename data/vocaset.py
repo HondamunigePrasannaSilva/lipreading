@@ -29,7 +29,7 @@ class vocadataset(Dataset):
         self.labels = self.getlabels()
         self.mouthonly = mouthOnly
         
-
+        # fill the missing data by copying the first sentence and vertex 
         l = ['FaceTalk_170811_03274_TA', 'FaceTalk_170809_00138_TA']
         ind = ['sentence24', 'sentence32']
         self.labels[l[0]][24] = self.labels[l[0]][0]
@@ -44,7 +44,6 @@ class vocadataset(Dataset):
             random.seed(0) # set seed to 0 to select train/val/test set
             self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
 
-        #print(self.index)
         self.type = type
         self.landmark = landmark
 
@@ -94,7 +93,7 @@ class vocadataset(Dataset):
             print("Type must be: train, test or val")
             return
 
-        voice_idx, sentence_idx = int(idx/40), idx%40   #TODO: trovare un modo divero per accedere
+        voice_idx, sentence_idx = int(idx/40), idx%40
         #print(self.keys[voice_idx])
         sentence_idx += 1   # sentence name start from 01 not from 00
         if(sentence_idx < 10):
@@ -128,7 +127,7 @@ class vocadataset(Dataset):
         voice_idx, sentence_idx = int(idx/40), idx%40
         sentence = self.labels[self.keys[voice_idx]][sentence_idx]
 
-        return "#"+sentence
+        return sentence
          
     def getLandmark(self, vertex, index, type):
         """
@@ -151,12 +150,16 @@ class vocadataset(Dataset):
         v  = trimesh.load(f"dataset/mesh/{voice_name}.ply", process=False)
         landmarks = torch.Tensor(size=[vertex.shape[0], 68, 3])
         
+
+
         for i in range(vertex.shape[0]):
             landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
          #   if(i > 0):
                 #landmarks[i] = torch.pow(landmarks[0]-landmarks[i],2)
          #       landmarks[i] = landmarks[0]-landmarks[i]
 
+        max_value = torch.max(landmarks)
+        min_value = torch.min(landmarks)
         #return torch.nn.functional.normalize(landmarks[1:], p=2, dim=1)
         return landmarks
 
@@ -169,7 +172,6 @@ class vocadataset(Dataset):
         
         #return landmarks[:,l,0:2]  # to get only x and y
         return landmarks[:,l,:]
-
 
     def getTrainIndex(self):
         """
@@ -202,6 +204,7 @@ class vocadataset(Dataset):
                 landmark = self.getOnlyMouthlandmark(landmark)
             
             return landmark, label
+    
     def getlen(self, type):
         if type == "train":
             train_idx = [item for item in list(range(0,12)) if item not in self.index] #get voice index of train

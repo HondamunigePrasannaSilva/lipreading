@@ -12,7 +12,7 @@ import random
 import math
 import time
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 class Encoder(nn.Module):
     def __init__(self, input_dim, hid_dim, n_layers, emb_dim):
@@ -132,7 +132,7 @@ class only_Decoder(nn.Module):
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
 
-        self.tan = nn.Tanh()
+        #self.tan = nn.Tanh()
         
         
     def forward(self, input, len_):
@@ -152,7 +152,7 @@ class only_Decoder(nn.Module):
         
         prediction = self.fc_out(outputs.permute(1,0,2))
 
-        prediction = self.tan(prediction)
+        #prediction = self.tan(prediction)
         
         #prediction = [batch size, output dim]
         

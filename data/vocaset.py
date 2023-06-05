@@ -154,14 +154,14 @@ class vocadataset(Dataset):
 
         for i in range(vertex.shape[0]):
             landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
-         #   if(i > 0):
+            if(i > 0):
                 #landmarks[i] = torch.pow(landmarks[0]-landmarks[i],2)
-         #       landmarks[i] = landmarks[0]-landmarks[i]
+                landmarks[i] = landmarks[0]-landmarks[i]
 
         max_value = torch.max(landmarks)
         min_value = torch.min(landmarks)
-        #return torch.nn.functional.normalize(landmarks[1:], p=2, dim=1)
-        return landmarks
+        #return torch.nn.functional.normalize(, p=2, dim=1)
+        return landmarks[1:]
 
     def getOnlyMouthlandmark(self, landmarks):
         """

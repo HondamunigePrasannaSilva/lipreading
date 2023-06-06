@@ -5,16 +5,16 @@ from data.vocaset import *
 from utils import *
 from model_temp import *
 import tqdm 
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
     'LANDMARK_DIM' : 36,
     'INPUT_DIM' : 36*3,
-    'HID_DIM' : 512,
+    'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 100,
-    'NUM_LAYERS': 4,
+    'NUM_LAYERS': 2,
     'EMB_DIM': 256
 }
 
@@ -59,18 +59,18 @@ def create(config):
     ctc_loss = nn.CTCLoss()
 
     # Define the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=1e-8)
 
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "_prova"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "_hd64_nl2_emb"):
     
     #telling wand to watch
     if wandb.run is not None:
         wandb.watch(model, optimizer, log="all", log_freq=1)
 
-    model.load_state_dict(torch.load("/home/hsilva/lipreading/models/model_prova.pt"))
+    model.load_state_dict(torch.load("./models/model_hd64_nl2_emb.pt"))
     model.train()
     
     # Training loop

@@ -13,18 +13,23 @@ To do list!
 [x] Fare il training con batch
 [x] Label non della stessa dimensione...
 [x] Aumentare numero di layer autoregressivi
+[x] Provare LSTM
+[x] Normalizing data, already normalized(per sentence)
+[x] Provare soltanto l'encoder
 
 
-[ ] Provare LSTM
-[ ] Usare transformer
-[ ] Usare mesh extraendo le feature con spiral convolutional
-[ ] Usare il filtro per tirare fuori i punti della bocca
+[ ] Differenza tra i landmark(template.pkl)
+[ ] Usare il filtro/maschera per tirare fuori i punti della bocca
+[ ] Seq2Seq
 
 
 
 x domani mattina
 
-[ ] Differenza tra i landmark
-[ ] Normalizing data, already normalized
-[ ] Provare soltanto l'encoder
+[ ] Usare transformer
+
+
 [ ] Indagare sul padding
+
+
+[ ] Usare mesh extraendo le feature con spiral convolutional

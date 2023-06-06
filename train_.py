@@ -5,16 +5,17 @@ from data.vocaset import *
 from utils import *
 from model import *
 import tqdm 
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
     'LANDMARK_DIM' : 36,
     'INPUT_DIM' : 36*3,
-    'HID_DIM' : 128,
-    'BATCH_SIZE': 32,
+    'HID_DIM' : 32,
+    'BATCH_SIZE': 1,
     'EPOCHS': 100,
-    'NUM_LAYERS': 4
+    'NUM_LAYERS': 2
 }
 
 
@@ -42,7 +43,7 @@ def create(config):
     #get dataloader
     trainset = vocadataset("train", landmark=True, mouthOnly=True)
     valset = vocadataset("val", landmark=True)
-    trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8)
+    trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True)
     valloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8)
 
     #define the vocabulary
@@ -54,10 +55,10 @@ def create(config):
     model = Seq2Seq(enc, dec, device).to(device)
 
     # Define the CTC loss function
-    ctc_loss = nn.CTCLoss()
+    ctc_loss = nn.CTCLoss(zero_infinity=True)
 
     # Define the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
@@ -68,8 +69,9 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
     if wandb.run is not None:
         wandb.watch(model, optimizer, log="all", log_freq=1)
 
+    #model.load_state_dict(torch.load("/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/models/model_prova.pt"))
     model.train()
-    losses = []
+    
     # Training loop
 
     for epoch in range(config.EPOCHS):
@@ -77,10 +79,11 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
         #list to save sentences
         real_sentences = []
         pred_sentences = []
-
+        losses = []
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
-        for landmarks, len_landmark, label, len_label in trainloader:
 
+        for landmarks, len_landmark, label, len_label in trainloader:
+                
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
             
@@ -99,7 +102,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
 
             output = model(landmarks, label)
                         
-            loss = ctc_loss(output, label, len_landmark, len_label)
+            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
             loss.backward()
             optimizer.step()
 
@@ -107,7 +110,9 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
 
             #progress bar stuff
             progress_bar.set_description(f"Epoch {epoch+1}/{config.EPOCHS}")
-            progress_bar.set_postfix(loss=loss.item())  # Update the loss value
+            #progress_bar.set_postfix(loss=loss.item())  # Update the loss value
+            progress_bar.set_postfix(loss=np.mean(losses), lossb = loss.item())  # Update the loss value
+            #progress_bar.set_postfix(loss=np.mean(losses))  # Update the loss value
             progress_bar.update(1)
 
             real_sentences, pred_sentences = write_results(len_label, label_list, output, trainloader.batch_size, vocabulary, real_sentences, pred_sentences)

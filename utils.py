@@ -91,13 +91,13 @@ def pcshow(xs,ys,zs):
                       selector=dict(mode='markers'))
     fig.show()
 
-def process_string(input_string):
+def process_string(input_string, blank= "@"):
     output_string = ""
     current_char = ""
 
     for char in input_string:
         if char != current_char:
-            if char.isalpha() or char == '0':
+            if char.isalpha() or char == blank:
                 if char == ' ':
                     output_string += ' '
                 else:

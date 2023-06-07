@@ -158,7 +158,7 @@ class only_Decoder(nn.Module):
         
         return prediction#, hidden
     
-"""class only_Decoder(nn.Module):
+class only_Decoder2(nn.Module):
     def __init__(self, input_dim, hid_dim, n_layers, output_dim):
         super().__init__()
         
@@ -178,19 +178,20 @@ class only_Decoder(nn.Module):
         #hidden = [n directions*num_layers, batch size, hid dim]
         
         #input = [batch size, 1]
-        packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
+        #packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
 
-        output, _ = self.rnn(packed_seq.to(torch.float32))
+        #output, _ = self.rnn(packed_seq.to(torch.float32))
+        output, _ = self.rnn(input.to(torch.float32))
 
-        outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
+        #outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
         
         #output = [seq len, batch size, hid dim * n directions]
         #hidden = [n layers * n directions, batch size, hid dim]
         
-        prediction = self.fc_out(outputs.permute(1,0,2))
+        prediction = self.fc_out(output)
 
         #prediction = self.tan(prediction)
         
         #prediction = [batch size, output dim]
         
-        return prediction#, hidden"""
+        return prediction#, hidden

@@ -97,12 +97,15 @@ def process_string(input_string, blank= "@"):
 
     for char in input_string:
         if char != current_char:
-            if char.isalpha() or char == blank:
-                if char == ' ':
-                    output_string += ' '
-                else:
-                    output_string += char   
+            if char == blank:
+                output_string += ''
+            else:
+                output_string += char
+                
             current_char = char
+        else:
+            output_string += ''
+
 
     return output_string.strip()
 

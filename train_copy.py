@@ -64,13 +64,13 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "_hd64_nl2"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "model20sent_4"):
     
     #telling wand to watch
     if wandb.run is not None:
         wandb.watch(model, optimizer, log="all", log_freq=1)
 
-    #model.load_state_dict(torch.load("./models/model_hd64_nl2.pt"))
+    model.load_state_dict(torch.load("./m/model20sent_4.pt"))
     model.train()
     
     # Training loop

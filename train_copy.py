@@ -13,7 +13,7 @@ hyper = {
     'INPUT_DIM' : 36*3,
     'HID_DIM' : 64,
     'BATCH_SIZE': 1,
-    'EPOCHS': 1000,
+    'EPOCHS': 5000,
     'NUM_LAYERS': 2,
     'EMB_DIM': 256
 }
@@ -22,7 +22,7 @@ hyper = {
 
 def model_pipeline():
 
-    with wandb.init(project="lip-reading", config=hyper, mode="disabled"):
+    with wandb.init(project="lip-reading", config=hyper):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -59,18 +59,19 @@ def create(config):
     ctc_loss = nn.CTCLoss()
 
     # Define the optimizer
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    #optimizer = optim.AdamW(model.parameters(), lr=0.0001)
 
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "_hd64_nl2"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle= "_f_"):
     
     #telling wand to watch
-    if wandb.run is not None:
-        wandb.watch(model, optimizer, log="all", log_freq=1)
+    #if wandb.run is not None:
+    wandb.watch(model, optimizer, log="all", log_freq=1)
 
-    #model.load_state_dict(torch.load("./models/model_hd64_nl2.pt"))
+    model.load_state_dict(torch.load("./models/model_376.pt"))
     model.train()
     
     # Training loop
@@ -114,17 +115,19 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config, modeltitle
             #progress_bar.set_postfix(loss=loss.item())  # Update the loss value
             progress_bar.set_postfix(loss=np.mean(losses))  # Update the loss value
             progress_bar.update(1)
-
-            real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), trainloader.batch_size, vocabulary, real_sentences, pred_sentences)
+            if epoch%100 == 0:
+                real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), trainloader.batch_size, vocabulary, real_sentences, pred_sentences)
         
         # endfor batch 
         
-        if wandb.run is not None:
-            wandb.log({"epoch":epoch, "loss":np.mean(losses)}, step=epoch)
+        #if wandb.run is not None:
+        wandb.log({"epoch":epoch, "loss":np.mean(losses)}, step=epoch)
         
         # save the model
-        torch.save(model.state_dict(), "models/model"+str(modeltitle)+".pt")
-        save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
+        if epoch%100 == 0:
+            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"_"+str(epoch)+".pt")
+
+            save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
     return np.mean(losses)
 

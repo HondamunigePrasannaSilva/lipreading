@@ -6,9 +6,7 @@ import numpy as np
 import random
 import trimesh
 from data.getlandmark import *
-
-
-# TODO: migliore getindex!
+import h5py
 
 class vocadataset(Dataset):
 
@@ -42,13 +40,19 @@ class vocadataset(Dataset):
             self.index = index
         else:
             random.seed(0) # set seed to 0 to select train/val/test set
+            
             self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
+            print(self.index)
 
         self.type = type
         self.landmark = landmark
 
         self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
-        
+        # read file to get only mouth vertex
+        file = h5py.File('/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/dataset/mouthIdx_CoMa.mat', 'r')
+
+        self.idxInsideMouth = file['idxInsideMouth'][0]
+
     def getlabels(self):
         """
             - method that returns a dict. key:voice_name, value: sentence, 40 sentence for each voice
@@ -107,6 +111,9 @@ class vocadataset(Dataset):
         # get list of vertex
         vertex = self.face_vert[seq_idx]
 
+        if (self.landmark == False) and (self.mouthonly==True):
+            vertex = vertex[:,self.idxInsideMouth,:]
+        
         return vertex
     
     def getLabel(self, index, type = "train"):
@@ -154,14 +161,17 @@ class vocadataset(Dataset):
 
         for i in range(vertex.shape[0]):
             landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
-            if(i > 0):
+            
+            """           
+             if(i > 0):
                 #landmarks[i] = torch.pow(landmarks[0]-landmarks[i],2)
                 landmarks[i] = landmarks[0]-landmarks[i]
 
         max_value = torch.max(landmarks)
-        min_value = torch.min(landmarks)
+        min_value = torch.min(landmarks)"""
+        
         #return torch.nn.functional.normalize(, p=2, dim=1)
-        return landmarks[1:]
+        return landmarks #[1:]
 
     def getOnlyMouthlandmark(self, landmarks):
         """

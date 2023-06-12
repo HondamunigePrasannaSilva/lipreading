@@ -10,13 +10,15 @@ import h5py
 
 class vocadataset(Dataset):
 
-    def __init__(self, type="train", landmark = True, index=None, mouthOnly = False):
+    def __init__(self, type="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False):
+        
         """
             - type : "test", "train" or "val".Default type = "train"
             - landmark: if True returns landmark, if false returns the vertex. Default = landmark = True
             - index: test and validation voice index. Default=None, it's selected randomly!
             - mouthOnly: get only mouth landmark!
         """
+
         # read vertex from data_verts.npy file and seq to index from seq_to_idx
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
         self.face_vert =  torch.from_numpy(self.face_vert_mmap)
@@ -48,9 +50,14 @@ class vocadataset(Dataset):
         self.landmark = landmark
 
         self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
-        # read file to get only mouth vertex
-        file = h5py.File('/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/dataset/mouthIdx_CoMa.mat', 'r')
+        # Save landmarks
+        if savelandmarks is not False:
+            self.landmarks, self.landmark_lens = self.createLandmarkTrain()
+        else:
+            self.landmarks, self.landmark_lens = None, None
 
+        # read file to get only mouth vertex
+        file = h5py.File('dataset/mouthIdx_CoMa.mat', 'r')
         self.idxInsideMouth = file['idxInsideMouth'][0]
 
     def getlabels(self):
@@ -172,6 +179,42 @@ class vocadataset(Dataset):
         
         #return torch.nn.functional.normalize(, p=2, dim=1)
         return landmarks #[1:]
+    
+    def createLandmarkTrain(self,):
+
+        if(self.type == "train"):
+            dim = len(self.trainIndex)
+        if(self.type == "test"):
+            dim = len(self.testIndex)
+        if(self.type == "val"):
+            dim = len(self.valIndex)
+        train_frame_size = torch.Tensor( size=[dim,2,1])
+        count = 0
+        for i in range(dim):
+            vertex = self.getVertex(i, type = self.type)
+            
+            if i > 0:
+                ll =  self.getLandmark(vertex, i, type=self.type)
+                train_frame_size[i][0] = ll.shape[0]    
+                landmark = torch.cat( (landmark,ll) , dim=0 ) 
+            if i == 0:
+               landmark = self.getLandmark(vertex, i, type=self.type)
+               train_frame_size[i][0] = landmark.shape[0]
+            
+            
+            train_frame_size[i][1] = count
+            # [sum_n_frame, 68, 3]
+            count = landmark.shape[0]
+        
+        return landmark, train_frame_size
+
+    def getSavedLandmarksTrain(self, index):
+        start_index = int(self.landmark_lens[index][1])
+        final_index = start_index + int(self.landmark_lens[index][0])
+        
+        #print("start", start_index, "final", final_index )
+        #print(self.landmarks.shape)
+        return self.landmarks[start_index:final_index]
 
     def getOnlyMouthlandmark(self, landmarks):
         """
@@ -203,8 +246,16 @@ class vocadataset(Dataset):
         
     def __getitem__(self, index):
         
-        vertex = self.getVertex(index, self.type)
         label = self.getLabel(index, self.type)
+
+        if (self.landmark == True) and (self.landmarks is not None):
+            lan = self.getSavedLandmarksTrain(index)
+            #return lan,self.landmark_lens[index][0], label, torch.tensor(len(label), dtype=torch.long)
+            return lan, label
+            
+
+        vertex = self.getVertex(index, self.type)
+        
         
         if self.landmark == False:
             return vertex, label

@@ -12,3 +12,5 @@ results/*.txt
 test2.ipynb
 prova.txt
 #test.ipynb
+train_loss.txt
+val_loss.txt

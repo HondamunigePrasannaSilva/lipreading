@@ -23,7 +23,7 @@ hyper = {
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper, mode = "disabled"):
+    with wandb.init(project="Lip-Reading-3D", config=hyper):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -46,8 +46,8 @@ def create(config):
     #valset = vocadataset("val", landmark=False, mouthOnly=False)
     valset = vocadataset("val", landmark=True, savelandmarks=True)
     
-    trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True)
-    valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8)
+    trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
+    valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)
 
     #define the vocabulary
     vocabulary = create_vocabulary(blank='@')
@@ -70,7 +70,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     #if wandb.run is not None:
     wandb.watch(model, optimizer, log="all", log_freq=320)
 
-    #model.load_state_dict(torch.load("/home/hsilva/lipreading/models/model_f__5400_5_w.pt"))
+    model.load_state_dict(torch.load("/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/models/model_MO_1101.pt"))
     model.train()
     
     # Training loop
@@ -127,13 +127,13 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         wandb.log({"epoch":epoch, "loss":np.mean(losses)}, step=epoch)
         
         # save the model
-        if epoch%5 == 0:
+        if epoch%50 == 0:
             test(model, valloader, vocabulary, ctc_loss)
             with open('train_loss.txt', 'a') as f:
                 f.write(str(np.mean(losses))+"\n")
 
         if epoch%100 == 0:
-            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"_"+str(epoch)+".pt")
+            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"_"+str(epoch+1001)+".pt")
             
 
         if epoch%500 == 0:

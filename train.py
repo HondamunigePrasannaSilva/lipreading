@@ -15,7 +15,7 @@ hyper = {
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
-    'LR': 1e-4,
+    'LR': 3e-4,
     'SERVER':'Windu'
 }
 
@@ -23,7 +23,7 @@ hyper = {
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper):
+    with wandb.init(project="Lip-Reading-3D", config=hyper, mode="disabled"):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -42,9 +42,9 @@ def create(config):
 
     #get dataloader
     #trainset = vocadataset("train", landmark=False, mouthOnly=False)
-    trainset = vocadataset("train", landmark=True, savelandmarks=True)
+    trainset = vocadataset("train", landmark=True)
     #valset = vocadataset("val", landmark=False, mouthOnly=False)
-    valset = vocadataset("val", landmark=True, savelandmarks=True)
+    valset = vocadataset("val", landmark=True)
     
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
     valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)
@@ -69,8 +69,8 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     #telling wand to watch
     #if wandb.run is not None:
     wandb.watch(model, optimizer, log="all", log_freq=320)
-
-    model.load_state_dict(torch.load("/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/models/model_MO_1101.pt"))
+    scaler = torch.cuda.amp.GradScaler()
+    #model.load_state_dict(torch.load("/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/models/model_MO_1101.pt"))
     model.train()
     
     # Training loop
@@ -101,15 +101,18 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             len_label = len_label.to(device)
             optimizer.zero_grad()
 
-            output = model(landmarks,len_landmark )
-            output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
-
-            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
-            loss.backward()
+            with torch.cuda.amp.autocast():
+                output = model(landmarks,len_landmark )
+                output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
+                loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
+            
+            
+            scaler.scale(loss).backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
 
             losses.append(loss.item())
 

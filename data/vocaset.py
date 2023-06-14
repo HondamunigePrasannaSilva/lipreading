@@ -10,7 +10,7 @@ import h5py
 
 class vocadataset(Dataset):
 
-    def __init__(self, type="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False):
+    def __init__(self, type_="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False, diff = False):
         
         """
             - type : "test", "train" or "val".Default type = "train"
@@ -36,17 +36,18 @@ class vocadataset(Dataset):
         self.labels[l[1]][32] = self.labels[l[1]][0]
         self.seq_index[l[0]]['sentence24'] = self.seq_index[l[0]]['sentence01']
         self.seq_index[l[1]]['sentence32'] = self.seq_index[l[1]]['sentence01']
-
+        
+        self.diff = diff
         # test and validation index can be set manually
         if index is not None:
             self.index = index
         else:
             random.seed(0) # set seed to 0 to select train/val/test set
             
-            self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
+            self.index = random.sample(list(range(0,12)), k=4) #sample 4 index [test_1, test_2, val_1, val_2]
             print(self.index)
 
-        self.type = type
+        self.type = type_
         self.landmark = landmark
 
         self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
@@ -73,16 +74,15 @@ class vocadataset(Dataset):
                 sent = f.readline()
                 sent = sent.lower().replace('\n', '')
                 # TODO refactor this shit!
-               # sent = sent.replace('.', '')
-               # sent = sent.replace('?', '')
-               # sent = sent.replace(',', '')
-               # sent = sent.replace('!', '')
-               # sent = sent.replace("’", ' ')
-               # sent = sent.replace("'", ' ')
-               # sent = sent.replace(":", '')
-               # sent = sent.replace(";", '')
-               # sent = sent.replace("-", '')
-
+                # sent = sent.replace('.', '')
+                # sent = sent.replace('?', '')
+                # sent = sent.replace(',', '')
+                # sent = sent.replace('!', '')
+                # sent = sent.replace("’", ' ')
+                # sent = sent.replace("'", ' ')
+                # sent = sent.replace(":", '')
+                # sent = sent.replace(";", '')
+                # sent = sent.replace("-", '')
                 l.append(sent)
 
             d[kl[i]] = l
@@ -164,21 +164,19 @@ class vocadataset(Dataset):
         v  = trimesh.load(f"dataset/mesh/{voice_name}.ply", process=False)
         landmarks = torch.Tensor(size=[vertex.shape[0], 68, 3])
         
-
+        # Get landmark of pose zero!
+        v_pose_zero = torch.tensor(v.vertices)
+        landmark_pose_zero = torch.from_numpy( get_landmarks(v_pose_zero,v))
 
         for i in range(vertex.shape[0]):
-            landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
             
-            """           
-             if(i > 0):
-                #landmarks[i] = torch.pow(landmarks[0]-landmarks[i],2)
-                landmarks[i] = landmarks[0]-landmarks[i]
+            if self.diff == True:
+                landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v))-landmark_pose_zero
+            else:
+                landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v))
+            
 
-        max_value = torch.max(landmarks)
-        min_value = torch.min(landmarks)"""
-        
-        #return torch.nn.functional.normalize(, p=2, dim=1)
-        return landmarks #[1:]
+        return landmarks
     
     def createLandmarkTrain(self,):
 

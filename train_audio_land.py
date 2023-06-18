@@ -9,14 +9,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
-    'LANDMARK_DIM' : 68,
-    'INPUT_DIM' : 68*3,
+    'LANDMARK_DIM' : 464,
+    'INPUT_DIM' : 464*1,
     'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
-    'NUM_LAYERS': 2,
+    'NUM_LAYERS': 4,
     'LR': 3e-4,
-    'SERVER':'Yoda'
+    'SERVER':'W'
 }
 
 
@@ -42,9 +42,9 @@ def create(config):
 
     #get dataloader
     #trainset = vocadataset("train", landmark=True)
-    trainset = vocadataset("train", landmark=True)
+    trainset = vocadataset("train", onlyAudio=True)
     #valset = vocadataset("val", landmark=True)
-    valset = vocadataset("val", landmark=True)
+    valset = vocadataset("val", onlyAudio=True)
     
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
     valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)
@@ -82,11 +82,13 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         pred_sentences = []
         losses = []
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
-        for landmarks, len_landmark, label, len_label in trainloader:
+        for audio, len_audio, label, len_label in trainloader:
             #print("landmark",landmarks.shape,"len_landmark",len_landmark.shape,"label",label,"len_label",len_label.shape)
             #break
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
-            landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
+            #landmarks = torch.reshape(audio, (audio.shape[0], audio.shape[1], landmarks.shape[2]*landmarks.shape[3]))
+            audio = audio[0]#FIXME
+            len_audio[0] = audio.shape[1]#FIXME
             
             #variable to recover later the target sequences
             label_list = label
@@ -95,16 +97,16 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             label = char_to_index_batch(label, vocabulary)
 
             # move data to GPU!
-            landmarks = landmarks.to(device)
-            len_landmark = len_landmark.to(device)
+            audio = audio.to(device)
+            len_audio = len_audio.to(device)
             label = label.to(device)
             len_label = len_label.to(device)
             optimizer.zero_grad()
 
-            output = model(landmarks,len_landmark )
+            output = model(audio,len_audio)
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
-            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
+            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_audio, len_label)
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -148,11 +150,12 @@ def test(model, valloader, vocabulary, ctc_loss):
     losses = []
     with torch.no_grad():
 
-        for landmarks, len_landmark, label, len_label in valloader:
+        for audio, len_audio, label, len_label in valloader:
 
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
-            landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
-            
+            #landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
+            audio = audio[0]#FIXME
+            len_audio[0] = audio.shape[1]#FIXME
             #variable to recover later the target sequences
             label_list = label
 
@@ -160,15 +163,15 @@ def test(model, valloader, vocabulary, ctc_loss):
             label = char_to_index_batch(label, vocabulary)
 
             # move data to GPU!
-            landmarks = landmarks.to(device)
-            len_landmark = len_landmark.to(device)
+            audio = audio.to(device)
+            len_audio = len_audio.to(device)
             label = label.to(device)
             len_label = len_label.to(device)
 
-            output = model(landmarks, len_landmark)
+            output = model(audio, len_audio)
             output = output.permute(1, 0, 2)
             # scrittura nel file del outuput e della frase originale
-            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
+            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_audio, len_label)
             losses.append(loss.item())
 
             real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), valloader.batch_size, vocabulary, real_sentences, pred_sentences)        

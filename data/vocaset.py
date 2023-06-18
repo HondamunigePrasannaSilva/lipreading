@@ -10,7 +10,7 @@ import h5py
 
 class vocadataset(Dataset):
 
-    def __init__(self, type_="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False):
+    def __init__(self, type_="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False, onlyAudio = False):
         
         """
             - type : "test", "train" or "val".Default type = "train"
@@ -18,25 +18,52 @@ class vocadataset(Dataset):
             - index: test and validation voice index. Default=None, it's selected randomly!
             - mouthOnly: get only mouth landmark!
         """
-
+        self.onlyAudio = onlyAudio
         # read vertex from data_verts.npy file and seq to index from seq_to_idx
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
         self.face_vert =  torch.from_numpy(self.face_vert_mmap)
         self.seq_index = pickle.load(open("dataset/subj_seq_to_idx.pkl", 'rb'))
         self.audio_processed = pickle.load(open("dataset/processed_audio_deepspeech.pkl", 'rb'), encoding='latin1')
+        
+        self.audio_processed['FaceTalk_170811_03274_TA']['sentence01'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+        self.audio_processed['FaceTalk_170811_03274_TA']['sentence02'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+        self.audio_processed['FaceTalk_170811_03274_TA']['sentence24'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+
+
+        self.audio_processed['FaceTalk_170912_03278_TA']['sentence11'] = self.audio_processed['FaceTalk_170912_03278_TA']['sentence01']
+        
+        self.audio_processed['FaceTalk_170913_03279_TA']['sentence12'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
+        self.audio_processed['FaceTalk_170913_03279_TA']['sentence38'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
+
+        self.audio_processed['FaceTalk_170809_00138_TA']['sentence32'] = self.audio_processed['FaceTalk_170809_00138_TA']['sentence01']
+
+
 
         #get voice names and labels = sentences
         self.keys = list(self.seq_index)
         self.labels = self.getlabels()
         self.mouthonly = mouthOnly
         
-        # fill the missing data by copying the first sentence and vertex 
-        l = ['FaceTalk_170811_03274_TA', 'FaceTalk_170809_00138_TA']
-        ind = ['sentence24', 'sentence32']
-        self.labels[l[0]][24] = self.labels[l[0]][0]
-        self.labels[l[1]][32] = self.labels[l[1]][0]
-        self.seq_index[l[0]]['sentence24'] = self.seq_index[l[0]]['sentence01']
-        self.seq_index[l[1]]['sentence32'] = self.seq_index[l[1]]['sentence01']
+        # fill the missing data by copying the first sentence and vertex
+         
+        self.labels['FaceTalk_170811_03274_TA'][0] = self.labels['FaceTalk_170811_03274_TA'][2]
+        self.labels['FaceTalk_170811_03274_TA'][1] = self.labels['FaceTalk_170811_03274_TA'][2]
+        self.labels['FaceTalk_170811_03274_TA'][23] = self.labels['FaceTalk_170811_03274_TA'][2]
+        self.seq_index['FaceTalk_170811_03274_TA']['sentence24'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
+        self.seq_index['FaceTalk_170811_03274_TA']['sentence01'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
+        self.seq_index['FaceTalk_170811_03274_TA']['sentence02'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
+        #
+        self.labels['FaceTalk_170912_03278_TA'][10] = self.labels['FaceTalk_170912_03278_TA'][0]
+        self.seq_index['FaceTalk_170912_03278_TA']['sentence10'] = self.seq_index['FaceTalk_170912_03278_TA']['sentence01']
+        #
+        self.labels['FaceTalk_170913_03279_TA'][11] = self.labels['FaceTalk_170913_03279_TA'][0]
+        self.labels['FaceTalk_170913_03279_TA'][36] = self.labels['FaceTalk_170913_03279_TA'][0]
+        self.seq_index['FaceTalk_170913_03279_TA']['sentence11'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
+        self.seq_index['FaceTalk_170913_03279_TA']['sentence36'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
+        #
+        self.labels['FaceTalk_170809_00138_TA'][31] = self.labels['FaceTalk_170809_00138_TA'][0]
+        self.seq_index['FaceTalk_170809_00138_TA']['sentence32'] = self.seq_index['FaceTalk_170809_00138_TA']['sentence01']
+
 
         # test and validation index can be set manually
         if index is not None:
@@ -289,7 +316,7 @@ class vocadataset(Dataset):
 
         def getAudioInterval(audio):
             list_ = []
-            for i in range(0,16):
+            for i in range(len(audio)):
                 list_ = list_+ audio[i].tolist()
             
             return torch.tensor(list_)[None,:]
@@ -305,20 +332,22 @@ class vocadataset(Dataset):
             else:
                 audio_ = torch.cat([audio_, getAudioInterval(audio[i])], dim = 0)
         
-        return audio_[None, :, :]
+        return audio_[None, :, :] # size [1, len_landmark, audio_interval]
     
     
     def __getitem__(self, index):
         
         label = self.getLabel(index, self.type)
+        audio =  self.getAudio(index, type = self.type)
+
+        if self.onlyAudio == True:
+            return audio, label
 
         if (self.landmark == True) and (self.landmarks is not None):
             lan = self.getSavedLandmarksTrain(index)
             return lan, label
-            
-
+          
         vertex = self.getVertex(index, self.type)
-        
         
         if self.landmark == False:
             return vertex, label
@@ -374,6 +403,7 @@ def collate_fn(batch):
     # Get the sequences and their lengths
     sequences = [sample for sample in batch]
     lengths = torch.tensor([sample[0].size(0) for sample in batch])
+    #audio = batch[0][2]
 
     lengths_labels = [len(item) for item in label_batch]
     padded_labels = [item + item[len(item)-1] * (max(lengths_labels) - len(item)) for item in label_batch]
@@ -396,7 +426,7 @@ def collate_fn(batch):
     lengths_labels = torch.tensor(lengths_labels, dtype=torch.long)
     #lengths = torch.tensor(lengths)
 
-    return padded_sequences,lengths, padded_labels, lengths_labels
+    return padded_sequences,lengths, padded_labels, lengths_labels#, audio
 
 
 

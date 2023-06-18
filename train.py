@@ -9,21 +9,21 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
-    'LANDMARK_DIM' : 68,
-    'INPUT_DIM' : 68*3,
+    'LANDMARK_DIM' : 464,
+    'INPUT_DIM' : 464*1,
     'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
     'LR': 3e-4,
-    'SERVER':'W'
+    'SERVER':'Yoda'
 }
 
 
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper):
+    with wandb.init(project="Lip-Reading-3D", config=hyper, mode="disabled"):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -42,9 +42,9 @@ def create(config):
 
     #get dataloader
     #trainset = vocadataset("train", landmark=True)
-    trainset = vocadataset("train", landmark=True, savelandmarks=True)
+    trainset = vocadataset("train", landmark=True)
     #valset = vocadataset("val", landmark=True)
-    valset = vocadataset("val", landmark=True, savelandmarks=True)
+    valset = vocadataset("val", landmark=True)
     
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
     valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)

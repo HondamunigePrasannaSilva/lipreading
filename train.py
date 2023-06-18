@@ -16,14 +16,14 @@ hyper = {
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
     'LR': 3e-4,
-    'SERVER':'Windu'
+    'SERVER':'W'
 }
 
 
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper, mode="disabled"):
+    with wandb.init(project="Lip-Reading-3D", config=hyper):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -41,10 +41,10 @@ def model_pipeline():
 def create(config):
 
     #get dataloader
-    #trainset = vocadataset("train", landmark=False, mouthOnly=False)
-    trainset = vocadataset("train", landmark=True)
-    #valset = vocadataset("val", landmark=False, mouthOnly=False)
-    valset = vocadataset("val", landmark=True)
+    #trainset = vocadataset("train", landmark=True)
+    trainset = vocadataset("train", landmark=True, savelandmarks=True)
+    #valset = vocadataset("val", landmark=True)
+    valset = vocadataset("val", landmark=True, savelandmarks=True)
     
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
     valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)
@@ -54,6 +54,7 @@ def create(config):
 
     # define the models
     model = only_Decoder2(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, len(vocabulary)).to(device)
+    #m = torch.compile(model)
 
     # Define the CTC loss function
     ctc_loss = nn.CTCLoss()
@@ -64,15 +65,14 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "_MO"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "_AV"):
     
     #telling wand to watch
     #if wandb.run is not None:
     wandb.watch(model, optimizer, log="all", log_freq=320)
-    scaler = torch.cuda.amp.GradScaler()
-    #model.load_state_dict(torch.load("/home/prasanna/Documents/UNIFI/Computer Graphics/LipReading/lipreading/models/model_MO_1101.pt"))
+
     model.train()
-    
+    #model.load_state_dict(torch.load("/home/hsilva/lipreading/models/model_AV_500_4.pt"))
     # Training loop
 
     for epoch in range(config.EPOCHS):
@@ -101,18 +101,15 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             len_label = len_label.to(device)
             optimizer.zero_grad()
 
-            with torch.cuda.amp.autocast():
-                output = model(landmarks,len_landmark )
-                output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
-                loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
-            
-            
-            scaler.scale(loss).backward()
+            output = model(landmarks,len_landmark )
+            output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
+
+            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
+            loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             
-            scaler.step(optimizer)
-            scaler.update()
+            optimizer.step()
 
             losses.append(loss.item())
 
@@ -127,20 +124,19 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         # endfor batch 
         
         #if wandb.run is not None:
-        wandb.log({"epoch":epoch, "loss":np.mean(losses)}, step=epoch)
+        wandb.log({"epoch":epoch, "loss":np.mean(losses)})
         
         # save the model
-        if epoch%50 == 0:
-            test(model, valloader, vocabulary, ctc_loss)
-            with open('train_loss.txt', 'a') as f:
-                f.write(str(np.mean(losses))+"\n")
+        if epoch%10 == 0:
+            val_accuracy = test(model, valloader, vocabulary, ctc_loss)
+            wandb.log({"val_loss":val_accuracy})
 
         if epoch%100 == 0:
-            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"_"+str(epoch+1001)+".pt")
+            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"5.pt")
             
 
         if epoch%500 == 0:
-            save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
+            save_results(f"./results/results_{epoch}_4.txt", real_sentences, pred_sentences, overwrite=True)
 
     return
 
@@ -175,16 +171,15 @@ def test(model, valloader, vocabulary, ctc_loss):
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
             losses.append(loss.item())
 
-            real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), valloader.batch_size, vocabulary, real_sentences, pred_sentences)
-        
-        #print(np.mean(losses))
-        
-        with open('val_loss.txt', 'a') as f:
-            f.write(str(np.mean(losses))+"\n")
-        
+            real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), valloader.batch_size, vocabulary, real_sentences, pred_sentences)        
+
+        print(":>",np.mean(losses))
         pred_sentences = list(map(lambda x:process_string(x),pred_sentences))
-        save_results(f"./results/validation.txt", real_sentences, pred_sentences, overwrite=True)
+        save_results(f"./results/validation_4.txt", real_sentences, pred_sentences, overwrite=True)
+
+        
 
     model.train()
+    return np.mean(losses)
 
 model_pipeline()

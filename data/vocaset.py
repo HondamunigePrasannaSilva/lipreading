@@ -10,7 +10,7 @@ import h5py
 
 class vocadataset(Dataset):
 
-    def __init__(self, type_="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False, diff = False):
+    def __init__(self, type_="train", landmark = True, index=None, mouthOnly = False, savelandmarks = False):
         
         """
             - type : "test", "train" or "val".Default type = "train"
@@ -23,7 +23,8 @@ class vocadataset(Dataset):
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
         self.face_vert =  torch.from_numpy(self.face_vert_mmap)
         self.seq_index = pickle.load(open("dataset/subj_seq_to_idx.pkl", 'rb'))
-        
+        self.audio_processed = pickle.load(open("dataset/processed_audio_deepspeech.pkl", 'rb'), encoding='latin1')
+
         #get voice names and labels = sentences
         self.keys = list(self.seq_index)
         self.labels = self.getlabels()
@@ -36,21 +37,21 @@ class vocadataset(Dataset):
         self.labels[l[1]][32] = self.labels[l[1]][0]
         self.seq_index[l[0]]['sentence24'] = self.seq_index[l[0]]['sentence01']
         self.seq_index[l[1]]['sentence32'] = self.seq_index[l[1]]['sentence01']
-        
-        self.diff = diff
+
         # test and validation index can be set manually
         if index is not None:
             self.index = index
         else:
             random.seed(0) # set seed to 0 to select train/val/test set
             
-            self.index = random.sample(list(range(0,12)), k=4) #sample 4 index [test_1, test_2, val_1, val_2]
-            print(self.index)
+            self.index = random.sample(list(range(0,12)), k=4) # sample 4 index [test_1, test_2, val_1, val_2]
+            print(self.index[0])
 
         self.type = type_
         self.landmark = landmark
 
-        self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()
+        self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex_Mixed()# if you do not want to mixed index getTrainIndex
+
         # Save landmarks
         if savelandmarks is not False:
             self.landmarks, self.landmark_lens = self.createLandmarkTrain()
@@ -60,6 +61,7 @@ class vocadataset(Dataset):
         # read file to get only mouth vertex
         file = h5py.File('dataset/mouthIdx_CoMa.mat', 'r')
         self.idxInsideMouth = file['idxInsideMouth'][0]
+
 
     def getlabels(self):
         """
@@ -74,21 +76,47 @@ class vocadataset(Dataset):
                 sent = f.readline()
                 sent = sent.lower().replace('\n', '')
                 # TODO refactor this shit!
-                # sent = sent.replace('.', '')
-                # sent = sent.replace('?', '')
-                # sent = sent.replace(',', '')
-                # sent = sent.replace('!', '')
-                # sent = sent.replace("’", ' ')
-                # sent = sent.replace("'", ' ')
-                # sent = sent.replace(":", '')
-                # sent = sent.replace(";", '')
-                # sent = sent.replace("-", '')
+               # sent = sent.replace('.', '')
+               # sent = sent.replace('?', '')
+               # sent = sent.replace(',', '')
+               # sent = sent.replace('!', '')
+               # sent = sent.replace("’", ' ')
+               # sent = sent.replace("'", ' ')
+               # sent = sent.replace(":", '')
+               # sent = sent.replace(";", '')
+               # sent = sent.replace("-", '')
+
                 l.append(sent)
 
             d[kl[i]] = l
         
         return d
+    
+    def getVoice_Sentence_Index(self, index, type = 'train'):
+        """
+            method that returns vertex given the type and index
+        """
+        # get list of seq index!
+        if(type == "train"):
+            idx = self.trainIndex[index]
+        elif(type == "test"):
+            idx = self.testIndex[index]
+        elif(type == "val"):
+            idx = self.valIndex[index]
+        else:
+            print("Type must be: train, test or val")
+            return
 
+        voice_idx, sentence_idx = int(idx/40), idx%40
+        #print(self.keys[voice_idx])
+        sentence_idx += 1   # sentence name start from 01 not from 00
+        if(sentence_idx < 10):
+            sentence_idx = f"sentence0{sentence_idx}"
+        else:
+            sentence_idx = f"sentence{sentence_idx}"
+
+        return self.keys[voice_idx], sentence_idx
+    
     def getVertex(self, index, type = "train"):
         """
             method that returns vertex given the type and index
@@ -158,25 +186,19 @@ class vocadataset(Dataset):
             print("Type must be: train, test or val")
             return
         
-        voice_idx = int(idx/40)   #TODO: trovare un modo divero per accedere
+        voice_idx = int(idx/40)   
         voice_name = self.keys[voice_idx]
 
         v  = trimesh.load(f"dataset/mesh/{voice_name}.ply", process=False)
+
+        #Create empty tensor to save the landmarks        
         landmarks = torch.Tensor(size=[vertex.shape[0], 68, 3])
-        
-        # Get landmark of pose zero!
-        v_pose_zero = torch.tensor(v.vertices)
-        landmark_pose_zero = torch.from_numpy( get_landmarks(v_pose_zero,v))
 
+        # Trasform vertex in landmark! Heavy duty!
         for i in range(vertex.shape[0]):
+            landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v) )
             
-            if self.diff == True:
-                landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v))-landmark_pose_zero
-            else:
-                landmarks[i] = torch.from_numpy( get_landmarks(vertex[i],v))
-            
-
-        return landmarks
+        return landmarks 
     
     def createLandmarkTrain(self,):
 
@@ -210,13 +232,11 @@ class vocadataset(Dataset):
         start_index = int(self.landmark_lens[index][1])
         final_index = start_index + int(self.landmark_lens[index][0])
         
-        #print("start", start_index, "final", final_index )
-        #print(self.landmarks.shape)
         return self.landmarks[start_index:final_index]
 
     def getOnlyMouthlandmark(self, landmarks):
         """
-        Function to get only landmark that involves mouth movments!
+            - Function to get only landmark that involves mouth movments!
         """
         # selecting the landmaark that involves mouth movments!
         l = [i for i in range(1,18)]+[i for i in range(49,68)]
@@ -224,6 +244,26 @@ class vocadataset(Dataset):
         #return landmarks[:,l,0:2]  # to get only x and y
         return landmarks[:,l,:]
 
+    def getTrainIndex_Mixed(self):
+        """
+            - Method that return the index of train, test and validation set
+        """
+        #rember the set the seed
+        random.seed(0)
+
+        label_len = 12*40
+        result_list = []
+        result_list.extend(list(range(label_len)))
+        # first 80 is for validation and the last random is for testing 
+        random_subset = random.sample(result_list, 160)
+        # train list
+        train_index = [num for num in result_list if num not in random_subset]
+
+        test_index = random_subset[0:80]
+        val_index = random_subset[80:]
+
+        return train_index, test_index, val_index
+    
     def getTrainIndex(self):
         """
             - Method that return the index of train, test and validation set
@@ -237,18 +277,43 @@ class vocadataset(Dataset):
 
         train_index  = [item for item in list(range(label_len)) if item not in result_list]
 
-        test_index = result_list[0:(2*40)]
-        val_index = result_list[(2*40):]
+        test_index = result_list[0:(1*40)]
+        val_index = result_list[(1*40):]
 
         return train_index, test_index, val_index
+
+    def getAudio(self,index, type = "train"):
         
+        # get facetalk and sentence index given the global index
+        faceTalk, sentence = self.getVoice_Sentence_Index(index, type)
+
+        def getAudioInterval(audio):
+            list_ = []
+            for i in range(0,16):
+                list_ = list_+ audio[i].tolist()
+            
+            return torch.tensor(list_)[None,:]
+
+        #get length of the audio
+        audio = self.audio_processed[faceTalk][sentence]['audio']
+
+        len_audio = len(audio)
+
+        for i in range(len_audio):
+            if i == 0:
+                audio_ = getAudioInterval(audio[i])
+            else:
+                audio_ = torch.cat([audio_, getAudioInterval(audio[i])], dim = 0)
+        
+        return audio_[None, :, :]
+    
+    
     def __getitem__(self, index):
         
         label = self.getLabel(index, self.type)
 
         if (self.landmark == True) and (self.landmarks is not None):
             lan = self.getSavedLandmarksTrain(index)
-            #return lan,self.landmark_lens[index][0], label, torch.tensor(len(label), dtype=torch.long)
             return lan, label
             
 
@@ -300,6 +365,7 @@ class vocadataset(Dataset):
             return
 
         return count
+
 
 def collate_fn(batch):
 

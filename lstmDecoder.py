@@ -128,9 +128,9 @@ class only_Decoder(nn.Module):
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.fc_in = nn.Linear(input_dim, 32)
+        self.fc_in = nn.Linear(input_dim, 256)
 
-        self.rnn = nn.LSTM(32, hid_dim, num_layers=n_layers, bidirectional=True, batch_first=True)#, dropout = dropout
+        self.rnn = nn.LSTM(256, hid_dim, num_layers=n_layers, bidirectional=True, batch_first=True)#, dropout = dropout
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
 

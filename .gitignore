@@ -1,10 +1,11 @@
 dataset/*.npy
 dataset/*.pkl
 dataset/*.ply
+dataset/audio
 dataset/*.mat
 dataset/labels/*.txt
 dataset/mesh/*.ply
-img/*.png
+img/*
 __pycache__/
 models/
 wandb/

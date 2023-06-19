@@ -15,4 +15,3 @@ prova.txt
 #test.ipynb
 train_loss.txt
 val_loss.txt
-model_experiment.py

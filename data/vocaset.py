@@ -404,7 +404,7 @@ class vocadataset(Dataset):
 
 def collate_fn(batch):
 
-    data_batch, label_batch = zip(*batch)
+    data_batch,audio_batch, label_batch = zip(*batch)
 
     # Get the sequences and their lengths
     sequences = [sample for sample in batch]
@@ -432,7 +432,7 @@ def collate_fn(batch):
     lengths_labels = torch.tensor(lengths_labels, dtype=torch.long)
     #lengths = torch.tensor(lengths)
 
-    return padded_sequences,lengths, padded_labels, lengths_labels#, audio
+    return padded_sequences,lengths, padded_labels, lengths_labels,audio_batch[0]
 
 
 

@@ -340,23 +340,29 @@ class vocadataset(Dataset):
         label = self.getLabel(index, self.type)
         audio =  self.getAudio(index, type = self.type)
 
-        if self.onlyAudio == True:
-            return audio, label
+        
 
         if (self.landmark == True) and (self.landmarks is not None):
             lan = self.getSavedLandmarksTrain(index)
             return lan, label
           
         vertex = self.getVertex(index, self.type)
-        
-        if self.landmark == False:
+
+        if (self.onlyAudio == True) and (self.landmark == False):
+            return audio, label
+
+        if (self.onlyAudio == False) and (self.landmark == False):
             return vertex, label
-        else:
+
+        if (self.onlyAudio == False) and (self.landmark == True):
             landmark = self.getLandmark(vertex, index, self.type)
             if self.mouthonly == True:
                 landmark = self.getOnlyMouthlandmark(landmark)
-            
             return landmark, label
+
+        if (self.onlyAudio == True) and (self.landmark == True):
+            landmark = self.getLandmark(vertex, index, self.type)
+            return landmark, audio, label
     
     def getlen(self, type):
         if type == "train":

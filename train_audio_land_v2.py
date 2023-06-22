@@ -117,16 +117,18 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             audio = audio.to(device)
             optimizer.zero_grad()
 
-            output, hidden= model(landmarks,len_landmark )
+            output, hidden, cell = model(landmarks,len_landmark )
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             with torch.no_grad():
-                output_a, hidden_a= model_audio(audio, len_landmark)
+                output_a, hidden_a, cell_a = model_audio(audio, len_landmark)
                 hidden_a = hidden_a.permute(1,0,2).flatten(1)
+                cell_a = cell_a.permute(1,0,2).flatten(1)
             
             hidden = hidden.permute(1,0,2).flatten(1)
+            cell = cell.permute(1,0,2).flatten(1)
 
-            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)+1e-3*F.cosine_similarity(hidden, hidden_a)
+            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)+1e-3*F.cosine_similarity(hidden, hidden_a)+1e-3*F.cosine_similarity(cell, cell_a)
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)

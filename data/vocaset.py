@@ -78,7 +78,7 @@ class vocadataset(Dataset):
         self.type = type_
         self.landmark = landmark
 
-        self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex_Mixed()# if you do not want to mixed index getTrainIndex
+        self.trainIndex, self.testIndex, self.valIndex = self.getTrainIndex()# if you do not want to mixed index getTrainIndex; else getTrainIndex_Mixed
 
         # Save landmarks
         if savelandmarks is not False:
@@ -359,7 +359,7 @@ class vocadataset(Dataset):
         PATH = 'dataset/audio/'+self.keys[voice_idx]+'/'+sentence_idx
         
         audio, sr = torchaudio.load(PATH)
-        return audio
+        return audio[None, :]
     def __getitem__(self, index):
         
         label = self.getLabel(index, self.type)

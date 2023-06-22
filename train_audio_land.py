@@ -9,8 +9,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 hyper = {
-    'LANDMARK_DIM' : 464,
-    'INPUT_DIM' : 464*1,
+    'LANDMARK_DIM' : 768,
+    'INPUT_DIM' : 768*1,
     'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
@@ -42,9 +42,9 @@ def create(config):
 
     #get dataloader
     #trainset = vocadataset("train", landmark=True)
-    trainset = vocadataset("train", onlyAudio=True)
+    trainset = vocadataset("train", onlyAudio=True, landmark=False)
     #valset = vocadataset("val", landmark=True)
-    valset = vocadataset("val", onlyAudio=True)
+    valset = vocadataset("val", onlyAudio=True, landmark=False)
     
     trainloader = DataLoader(trainset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, shuffle=True, pin_memory=True)
     valloader = DataLoader(valset, batch_size=config.BATCH_SIZE, collate_fn=collate_fn, num_workers=8, pin_memory=True)
@@ -70,6 +70,10 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     #telling wand to watch
     #if wandb.run is not None:
     wandb.watch(model, optimizer, log="all", log_freq=320)
+    #Load wav2vec2
+    bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
+    wav2vec = bundle.get_model().to(device)
+    sample_rate = 22000
 
     model.train()
     #model.load_state_dict(torch.load("/home/hsilva/lipreading/models/model_AV_500_4.pt"))
@@ -82,13 +86,13 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         pred_sentences = []
         losses = []
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
-        for audio, len_audio, label, len_label in trainloader:
+        for audio, len_audio, label, len_label  in trainloader:
             #print("landmark",landmarks.shape,"len_landmark",len_landmark.shape,"label",label,"len_label",len_label.shape)
             #break
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             #landmarks = torch.reshape(audio, (audio.shape[0], audio.shape[1], landmarks.shape[2]*landmarks.shape[3]))
-            audio = audio[0]#FIXME
-            len_audio[0] = audio.shape[1]#FIXME
+            audio = audio[0]#FIXME needed with audio segmented
+            len_audio[0] = audio.shape[2]#FIXME needed with audio segmented
             
             #variable to recover later the target sequences
             label_list = label
@@ -101,9 +105,19 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             len_audio = len_audio.to(device)
             label = label.to(device)
             len_label = len_label.to(device)
+
+            if sample_rate != bundle.sample_rate:
+                audio = torchaudio.functional.resample(audio, sample_rate, bundle.sample_rate)
+
+            with torch.inference_mode():
+                audio_features, _ = wav2vec.extract_features(audio[0])
+
+            audio_input = audio_features[-1].clone().requires_grad_()
+            len_audio[0] = audio_input.shape[1]
+
             optimizer.zero_grad()
 
-            output = model(audio,len_audio)
+            output = model(audio_input,len_audio)
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_audio, len_label)
@@ -129,7 +143,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         wandb.log({"epoch":epoch, "loss":np.mean(losses)})
         
         # save the model
-        if epoch%10 == 0:
+        if epoch%1 == 0:
             val_accuracy = test(model, valloader, vocabulary, ctc_loss)
             wandb.log({"val_loss":val_accuracy})
 
@@ -148,6 +162,10 @@ def test(model, valloader, vocabulary, ctc_loss):
     real_sentences = []
     pred_sentences = []
     losses = []
+
+    bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
+    wav2vec = bundle.get_model().to(device)
+    sample_rate = 22000
     with torch.no_grad():
 
         for audio, len_audio, label, len_label in valloader:
@@ -168,7 +186,17 @@ def test(model, valloader, vocabulary, ctc_loss):
             label = label.to(device)
             len_label = len_label.to(device)
 
-            output = model(audio, len_audio)
+            if sample_rate != bundle.sample_rate:
+                audio = torchaudio.functional.resample(audio, sample_rate, bundle.sample_rate)
+
+            with torch.inference_mode():
+                audio_features, _ = wav2vec.extract_features(audio[0])
+
+            audio_input = audio_features[-1].clone()
+            len_audio[0] = audio_input.shape[1]
+            
+
+            output = model(audio_input, len_audio)
             output = output.permute(1, 0, 2)
             # scrittura nel file del outuput e della frase originale
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_audio, len_label)

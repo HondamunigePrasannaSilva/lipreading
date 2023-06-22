@@ -51,4 +51,4 @@ class only_Decoder2(nn.Module):
         
         #prediction = [batch size, output dim]
         
-        return prediction, hidden#
+        return prediction, hidden, cell#

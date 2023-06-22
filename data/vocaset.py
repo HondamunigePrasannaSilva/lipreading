@@ -1,5 +1,6 @@
 import torch
 import torchvision
+import torchaudio
 import pickle
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
@@ -25,17 +26,17 @@ class vocadataset(Dataset):
         self.seq_index = pickle.load(open("dataset/subj_seq_to_idx.pkl", 'rb'))
         self.audio_processed = pickle.load(open("dataset/processed_audio_deepspeech.pkl", 'rb'), encoding='latin1')
         
-        self.audio_processed['FaceTalk_170811_03274_TA']['sentence01'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
-        self.audio_processed['FaceTalk_170811_03274_TA']['sentence02'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
-        self.audio_processed['FaceTalk_170811_03274_TA']['sentence24'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+        #self.audio_processed['FaceTalk_170811_03274_TA']['sentence01'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+        #self.audio_processed['FaceTalk_170811_03274_TA']['sentence02'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
+        #self.audio_processed['FaceTalk_170811_03274_TA']['sentence24'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
 
 
-        self.audio_processed['FaceTalk_170912_03278_TA']['sentence11'] = self.audio_processed['FaceTalk_170912_03278_TA']['sentence01']
+        #self.audio_processed['FaceTalk_170912_03278_TA']['sentence11'] = self.audio_processed['FaceTalk_170912_03278_TA']['sentence01']
         
-        self.audio_processed['FaceTalk_170913_03279_TA']['sentence12'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
-        self.audio_processed['FaceTalk_170913_03279_TA']['sentence38'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
+        #self.audio_processed['FaceTalk_170913_03279_TA']['sentence12'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
+        #self.audio_processed['FaceTalk_170913_03279_TA']['sentence38'] = self.audio_processed['FaceTalk_170913_03279_TA']['sentence02']
 
-        self.audio_processed['FaceTalk_170809_00138_TA']['sentence32'] = self.audio_processed['FaceTalk_170809_00138_TA']['sentence01']
+        #self.audio_processed['FaceTalk_170809_00138_TA']['sentence32'] = self.audio_processed['FaceTalk_170809_00138_TA']['sentence01']
 
 
 
@@ -46,20 +47,20 @@ class vocadataset(Dataset):
         
         # fill the missing data by copying the first sentence and vertex
          
-        self.labels['FaceTalk_170811_03274_TA'][0] = self.labels['FaceTalk_170811_03274_TA'][2]
-        self.labels['FaceTalk_170811_03274_TA'][1] = self.labels['FaceTalk_170811_03274_TA'][2]
+        #self.labels['FaceTalk_170811_03274_TA'][0] = self.labels['FaceTalk_170811_03274_TA'][2]
+        #self.labels['FaceTalk_170811_03274_TA'][1] = self.labels['FaceTalk_170811_03274_TA'][2]
         self.labels['FaceTalk_170811_03274_TA'][23] = self.labels['FaceTalk_170811_03274_TA'][2]
         self.seq_index['FaceTalk_170811_03274_TA']['sentence24'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
-        self.seq_index['FaceTalk_170811_03274_TA']['sentence01'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
-        self.seq_index['FaceTalk_170811_03274_TA']['sentence02'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
+        #self.seq_index['FaceTalk_170811_03274_TA']['sentence01'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
+        #self.seq_index['FaceTalk_170811_03274_TA']['sentence02'] = self.seq_index['FaceTalk_170811_03274_TA']['sentence03']
         #
-        self.labels['FaceTalk_170912_03278_TA'][10] = self.labels['FaceTalk_170912_03278_TA'][0]
-        self.seq_index['FaceTalk_170912_03278_TA']['sentence10'] = self.seq_index['FaceTalk_170912_03278_TA']['sentence01']
+        #self.labels['FaceTalk_170912_03278_TA'][10] = self.labels['FaceTalk_170912_03278_TA'][0]
+        #self.seq_index['FaceTalk_170912_03278_TA']['sentence10'] = self.seq_index['FaceTalk_170912_03278_TA']['sentence01']
         #
-        self.labels['FaceTalk_170913_03279_TA'][11] = self.labels['FaceTalk_170913_03279_TA'][0]
-        self.labels['FaceTalk_170913_03279_TA'][36] = self.labels['FaceTalk_170913_03279_TA'][0]
-        self.seq_index['FaceTalk_170913_03279_TA']['sentence11'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
-        self.seq_index['FaceTalk_170913_03279_TA']['sentence36'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
+        #self.labels['FaceTalk_170913_03279_TA'][11] = self.labels['FaceTalk_170913_03279_TA'][0]
+        #self.labels['FaceTalk_170913_03279_TA'][36] = self.labels['FaceTalk_170913_03279_TA'][0]
+        #self.seq_index['FaceTalk_170913_03279_TA']['sentence11'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
+        #self.seq_index['FaceTalk_170913_03279_TA']['sentence36'] = self.seq_index['FaceTalk_170913_03279_TA']['sentence01']
         #
         self.labels['FaceTalk_170809_00138_TA'][31] = self.labels['FaceTalk_170809_00138_TA'][0]
         self.seq_index['FaceTalk_170809_00138_TA']['sentence32'] = self.seq_index['FaceTalk_170809_00138_TA']['sentence01']
@@ -334,12 +335,37 @@ class vocadataset(Dataset):
         
         return audio_[None, :, :] # size [1, len_landmark, audio_interval]
     
-    
+    def getAudioRaw(self, index, type):
+        # get list of seq index!
+        if(type == "train"):
+            idx = self.trainIndex[index]
+        elif(type == "test"):
+            idx = self.testIndex[index]
+        elif(type == "val"):
+            idx = self.valIndex[index]
+        else:
+            print("Type must be: train, test or val")
+            return
+
+        voice_idx, sentence_idx = int(idx/40), idx%40
+        #print(self.keys[voice_idx])
+        sentence_idx += 1   # sentence name start from 01 not from 00
+        if(sentence_idx < 10):
+            sentence_idx = f"sentence0{sentence_idx}.wav"
+        else:
+            sentence_idx = f"sentence{sentence_idx}.wav"
+
+        # get seq index of the voice and trasform it in a list
+        PATH = 'audio/'+self.keys[voice_idx]+'/'+sentence_idx
+        
+        audio, sr = torchaudio.load(PATH)
+        return audio
     def __getitem__(self, index):
         
         label = self.getLabel(index, self.type)
-        audio =  self.getAudio(index, type = self.type)
+        #audio =  self.getAudio(index, type = self.type)
 
+        audio = self.getAudioRaw(index, self.type)
         
 
         if (self.landmark == True) and (self.landmarks is not None):
@@ -404,7 +430,7 @@ class vocadataset(Dataset):
 
 def collate_fn(batch):
 
-    data_batch, label_batch = zip(*batch)
+    data_batch,audio_batch, label_batch = zip(*batch)
 
     # Get the sequences and their lengths
     sequences = [sample for sample in batch]
@@ -432,7 +458,7 @@ def collate_fn(batch):
     lengths_labels = torch.tensor(lengths_labels, dtype=torch.long)
     #lengths = torch.tensor(lengths)
 
-    return padded_sequences,lengths, padded_labels, lengths_labels#, audio
+    return padded_sequences,lengths, padded_labels, lengths_labels,audio_batch[0]
 
 
 

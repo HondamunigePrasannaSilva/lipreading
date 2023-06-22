@@ -356,7 +356,7 @@ class vocadataset(Dataset):
             sentence_idx = f"sentence{sentence_idx}.wav"
 
         # get seq index of the voice and trasform it in a list
-        PATH = 'audio/'+self.keys[voice_idx]+'/'+sentence_idx
+        PATH = 'dataset/audio/'+self.keys[voice_idx]+'/'+sentence_idx
         
         audio, sr = torchaudio.load(PATH)
         return audio

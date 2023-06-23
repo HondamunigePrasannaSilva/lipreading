@@ -157,7 +157,16 @@ class only_Decoder(nn.Module):
         #prediction = [batch size, output dim]
         
         return prediction#, hidden
-    
+
+
+def linear_interpolation(features, input_fps, output_fps, output_len=None):
+    features = features.transpose(1, 2)
+    seq_len = features.shape[2] / float(input_fps)
+    if output_len is None:
+        output_len = int(seq_len * output_fps)
+    output_features = torch.nn.functional.interpolate(features,size=output_len,align_corners=True,mode='linear')
+    return output_features.transpose(1, 2)
+
 class only_Decoder2(nn.Module):
     def __init__(self, input_dim, hid_dim, n_layers, output_dim):
         super().__init__()
@@ -165,11 +174,7 @@ class only_Decoder2(nn.Module):
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.seq = nn.Sequential(
-                                 nn.Conv2d(1, 1, kernel_size=3),
-                                 nn.BatchNorm2d(1),
-                                 nn.ReLU()
-                                )
+        
 
         self.rnn = nn.LSTM(input_dim, hid_dim, num_layers=n_layers, bidirectional=True, batch_first=True)#, dropout = dropout
         
@@ -187,10 +192,10 @@ class only_Decoder2(nn.Module):
         #packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
 
         #output, _ = self.rnn(packed_seq.to(torch.float32))
-
-        o = self.seq(input)
         
-        output, _ = self.rnn(input.to(torch.float32))
+        resized_tensor = linear_interpolation(input, 50, 60,output_len=len_)
+
+        output, _ = self.rnn(resized_tensor.to(torch.float32))
 
         #outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
         

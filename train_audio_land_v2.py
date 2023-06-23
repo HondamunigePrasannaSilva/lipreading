@@ -38,7 +38,7 @@ hyper_a = {
 
 def model_pipeline():
 
-    with wandb.init(project="AudioLand-3D", config=hyper):
+    with wandb.init(project="AudioLand-3D", config=hyper, mode="disabled"):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 

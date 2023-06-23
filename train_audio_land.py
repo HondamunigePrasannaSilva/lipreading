@@ -14,7 +14,7 @@ hyper = {
     'HID_DIM' : 128,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
-    'NUM_LAYERS': 4,
+    'NUM_LAYERS': 2,
     'LR': 3e-4,
     'SERVER':'W'
 }
@@ -42,7 +42,7 @@ def create(config):
 
     #get dataloader
     #trainset = vocadataset("train", landmark=True)
-    trainset = vocadataset("train", onlyAudio=True, landmark=False)
+    trainset = vocadataset("train", onlyAudio=True, landmark=True)
     #valset = vocadataset("val", landmark=True)
     valset = vocadataset("val", onlyAudio=True, landmark=False)
     
@@ -65,7 +65,7 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "_AV_1"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "test_1"):
     
     #telling wand to watch
     #if wandb.run is not None:
@@ -86,13 +86,13 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         pred_sentences = []
         losses = []
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
-        for audio, len_audio, label, len_label  in trainloader:
+        for lan, len_audio, label, len_label, audio  in trainloader:
             #print("landmark",landmarks.shape,"len_landmark",len_landmark.shape,"label",label,"len_label",len_label.shape)
             #break
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             #landmarks = torch.reshape(audio, (audio.shape[0], audio.shape[1], landmarks.shape[2]*landmarks.shape[3]))
-            audio = audio[0]#FIXME needed with audio segmented
-            len_audio[0] = audio.shape[2]#FIXME needed with audio segmented
+            audio = audio[0]                #FIXME needed with audio segmented
+            len_audio[0] = audio.shape[1]   #FIXME needed with audio segmented
             
             #variable to recover later the target sequences
             label_list = label
@@ -110,14 +110,14 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
                 audio = torchaudio.functional.resample(audio, sample_rate, bundle.sample_rate)
 
             with torch.inference_mode():
-                audio_features, _ = wav2vec.extract_features(audio[0])
+                audio_features, _ = wav2vec.extract_features(audio)
 
             audio_input = audio_features[-1].clone().requires_grad_()
             len_audio[0] = audio_input.shape[1]
 
             optimizer.zero_grad()
 
-            output = model(audio_input,len_audio)
+            output = model(audio_input,lan.shape[1])
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_audio, len_label)

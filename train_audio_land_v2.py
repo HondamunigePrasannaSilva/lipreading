@@ -17,25 +17,28 @@ hyper = {
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
     'LR': 3e-4,
-    'SERVER':'Local'
+    'SERVER':'windu',
+    'WEIGHT_SIMILARITY': 1,
+    'WEIGHT_CTCLOSS': 1
+
 }
 
 hyper_a = {
-    'LANDMARK_DIM' : 464,
-    'INPUT_DIM' : 464*1,
+    'LANDMARK_DIM' : 768,
+    'INPUT_DIM' : 768*1,
     'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
-    'LR': 1e-5,
-    'SERVER':'Y'
+    'LR': 3e-4,
+    'SERVER':'W'
 }
 
 
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper, mode="disabled"):
+    with wandb.init(project="AudioLand-3D", config=hyper):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -82,11 +85,15 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     #telling wand to watch
     #if wandb.run is not None:
     wandb.watch(model, optimizer, log="all", log_freq=320)
-
+    #Load wav2vec2
+    bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
+    wav2vec = bundle.get_model().to(device)
+    sample_rate = 22000
+    MSE_loss=nn.MSELoss()
     model.train()
 
     model_audio = only_Decoder2(hyper_a['INPUT_DIM'], hyper_a['HID_DIM'], hyper_a['NUM_LAYERS'], len(vocabulary)).to(device)
-    model_audio.load_state_dict(torch.load("./models/model_Audio.pt"))
+    model_audio.load_state_dict(torch.load("./models/model_AV10.pt"))
     model_audio.eval()
     # Training loop
 
@@ -97,9 +104,9 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         pred_sentences = []
         losses = []
         progress_bar = tqdm.tqdm(total=len(trainloader), unit='step')
+        ct_l_s = []
+        csim_s = []
         for landmarks, len_landmark, label, len_label, audio in trainloader:
-            #print("landmark",landmarks.shape,"len_landmark",len_landmark.shape,"label",label,"len_label",len_label.shape)
-            #break
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
             
@@ -115,20 +122,32 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             label = label.to(device)
             len_label = len_label.to(device)
             audio = audio.to(device)
+            if sample_rate != bundle.sample_rate:
+                audio = torchaudio.functional.resample(audio, sample_rate, bundle.sample_rate)
+
+            with torch.inference_mode():
+                audio_features, _ = wav2vec.extract_features(audio[0])
+
+            audio_input = audio_features[-1].clone().requires_grad_()
+            #len_audio[0] = audio_input.shape[1]
+
             optimizer.zero_grad()
 
             output, hidden, cell = model(landmarks,len_landmark )
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             with torch.no_grad():
-                output_a, hidden_a, cell_a = model_audio(audio, len_landmark)
+                output_a, hidden_a, cell_a = model_audio(audio_input, len_landmark)
                 hidden_a = hidden_a.permute(1,0,2).flatten(1)
                 cell_a = cell_a.permute(1,0,2).flatten(1)
             
             hidden = hidden.permute(1,0,2).flatten(1)
             cell = cell.permute(1,0,2).flatten(1)
 
-            loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)+1e-3*F.cosine_similarity(hidden, hidden_a)+1e-3*F.cosine_similarity(cell, cell_a)
+            ct_l = 0.5*ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
+            csim = -1*F.cosine_similarity(hidden, hidden_a)
+            #csim = MSE_loss(hidden, hidden_a)
+            loss = ct_l+csim #+1e-3*F.cosine_similarity(cell, cell_a)
             loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
@@ -136,30 +155,32 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             optimizer.step()
 
             losses.append(loss.item())
+            ct_l_s.append(ct_l.item())
+            csim_s.append(csim.item())
 
             #progress bar stuff
             progress_bar.set_description(f"Epoch {epoch+1}/{config.EPOCHS}")
             #progress_bar.set_postfix(loss=loss.item())  # Update the loss value
             progress_bar.set_postfix(loss=np.mean(losses))  # Update the loss value
             progress_bar.update(1)
-            if epoch%500 == 0:
+            if epoch%10 == 0:
                 real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), trainloader.batch_size, vocabulary, real_sentences, pred_sentences)
         
         # endfor batch 
         
         #if wandb.run is not None:
-        wandb.log({"epoch":epoch, "loss":np.mean(losses)})
+        wandb.log({"epoch":epoch, "loss":np.mean(losses), "ctcloss":np.mean(ct_l_s),"csim":np.mean(csim_s)})
         
         # save the model
-        #if epoch%10 == 0:
-            #val_accuracy = test(model, valloader, vocabulary, ctc_loss)
-            #wandb.log({"val_loss":val_accuracy})
+        if epoch%1 == 0:
+            val_accuracy = test(model, valloader, vocabulary, ctc_loss)
+            wandb.log({"val_loss":val_accuracy})
 
-        if epoch%100 == 0:
+        if epoch%5 == 0:
             torch.save(model.state_dict(), "models/model"+str(modeltitle)+".pt")
             
 
-        if epoch%1 == 0:
+        if epoch%10 == 0:
             save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
     return
@@ -172,7 +193,7 @@ def test(model, valloader, vocabulary, ctc_loss):
     losses = []
     with torch.no_grad():
 
-        for landmarks, len_landmark, label, len_label in valloader:
+        for landmarks, len_landmark, label, len_label, audio in valloader:
 
             # reshape the batch from [batch_size, frame_size, num_landmark, 3] to [batch_size, frame_size, num_landmark * 3] 
             landmarks = torch.reshape(landmarks, (landmarks.shape[0], landmarks.shape[1], landmarks.shape[2]*landmarks.shape[3]))
@@ -189,7 +210,7 @@ def test(model, valloader, vocabulary, ctc_loss):
             label = label.to(device)
             len_label = len_label.to(device)
 
-            output = model(landmarks, len_landmark)
+            output, _, _ = model(landmarks, len_landmark)
             output = output.permute(1, 0, 2)
             # scrittura nel file del outuput e della frase originale
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
@@ -200,8 +221,6 @@ def test(model, valloader, vocabulary, ctc_loss):
         print(":>",np.mean(losses))
         pred_sentences = list(map(lambda x:process_string(x),pred_sentences))
         save_results(f"./results/validation.txt", real_sentences, pred_sentences, overwrite=True)
-
-        
 
     model.train()
     return np.mean(losses)

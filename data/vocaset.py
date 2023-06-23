@@ -24,7 +24,7 @@ class vocadataset(Dataset):
         self.face_vert_mmap = np.load("dataset/data_verts.npy", mmap_mode='r+')
         self.face_vert =  torch.from_numpy(self.face_vert_mmap)
         self.seq_index = pickle.load(open("dataset/subj_seq_to_idx.pkl", 'rb'))
-        self.audio_processed = pickle.load(open("dataset/processed_audio_deepspeech.pkl", 'rb'), encoding='latin1')
+        #self.audio_processed = pickle.load(open("dataset/processed_audio_deepspeech.pkl", 'rb'), encoding='latin1')
         
         #self.audio_processed['FaceTalk_170811_03274_TA']['sentence01'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
         #self.audio_processed['FaceTalk_170811_03274_TA']['sentence02'] = self.audio_processed['FaceTalk_170811_03274_TA']['sentence03']
@@ -360,6 +360,7 @@ class vocadataset(Dataset):
         
         audio, sr = torchaudio.load(PATH)
         return audio[None, :]
+    
     def __getitem__(self, index):
         
         label = self.getLabel(index, self.type)
@@ -431,7 +432,7 @@ class vocadataset(Dataset):
 def collate_fn(batch):
 
     #data_batch,audio_batch, label_batch = zip(*batch)
-    data_batch, label_batch = zip(*batch)
+    data_batch,audio, label_batch = zip(*batch)
     # Get the sequences and their lengths
     sequences = [sample for sample in batch]
     lengths = torch.tensor([sample[0].size(0) for sample in batch])
@@ -458,7 +459,7 @@ def collate_fn(batch):
     lengths_labels = torch.tensor(lengths_labels, dtype=torch.long)
     #lengths = torch.tensor(lengths)
 
-    return padded_sequences,lengths, padded_labels, lengths_labels#,audio_batch[0]
+    return padded_sequences,lengths, padded_labels, lengths_labels, audio[0]
 
 
 

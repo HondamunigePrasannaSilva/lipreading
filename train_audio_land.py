@@ -11,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hyper = {
     'LANDMARK_DIM' : 768,
     'INPUT_DIM' : 768*1,
-    'HID_DIM' : 64,
+    'HID_DIM' : 128,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 4,
@@ -23,7 +23,7 @@ hyper = {
 
 def model_pipeline():
 
-    with wandb.init(project="Lip-Reading-3D", config=hyper, mode="disabled"):
+    with wandb.init(project="AudioLand-3D", config=hyper, mode = 'disabled'):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -65,7 +65,7 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "_AV"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "_AV_1"):
     
     #telling wand to watch
     #if wandb.run is not None:
@@ -147,12 +147,12 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             val_accuracy = test(model, valloader, vocabulary, ctc_loss)
             wandb.log({"val_loss":val_accuracy})
 
-        if epoch%100 == 0:
-            torch.save(model.state_dict(), "models/model"+str(modeltitle)+"5.pt")
+        if epoch%5 == 0:
+            torch.save(model.state_dict(), "models/model"+str(modeltitle)+str(epoch)+".pt")
             
 
-        if epoch%500 == 0:
-            save_results(f"./results/results_{epoch}_4.txt", real_sentences, pred_sentences, overwrite=True)
+        if epoch%1 == 0:
+            save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
     return
 
@@ -206,7 +206,7 @@ def test(model, valloader, vocabulary, ctc_loss):
 
         print(":>",np.mean(losses))
         pred_sentences = list(map(lambda x:process_string(x),pred_sentences))
-        save_results(f"./results/validation_4.txt", real_sentences, pred_sentences, overwrite=True)
+        save_results(f"./results/validation.txt", real_sentences, pred_sentences, overwrite=True)
 
         
 

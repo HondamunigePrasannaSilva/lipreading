@@ -5,6 +5,7 @@ import wandb
 from data.vocaset import *
 from utils import *
 from model_experiment import *
+import lstmDecoder
 import tqdm 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -12,7 +13,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hyper = {
     'LANDMARK_DIM' : 68,
     'INPUT_DIM' : 68*3,
-    'HID_DIM' : 64,
+    'HID_DIM' : 128,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
@@ -26,7 +27,7 @@ hyper = {
 hyper_a = {
     'LANDMARK_DIM' : 768,
     'INPUT_DIM' : 768*1,
-    'HID_DIM' : 64,
+    'HID_DIM' : 128,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,
@@ -38,7 +39,7 @@ hyper_a = {
 
 def model_pipeline():
 
-    with wandb.init(project="AudioLand-3D", config=hyper, mode="disabled"):
+    with wandb.init(project="AudioLand-3D", config=hyper):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -84,6 +85,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     
     #telling wand to watch
     #if wandb.run is not None:
+    cate = nn.CrossEntropyLoss()
     wandb.watch(model, optimizer, log="all", log_freq=320)
     #Load wav2vec2
     bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
@@ -92,8 +94,8 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     MSE_loss=nn.MSELoss()
     model.train()
 
-    model_audio = only_Decoder2(hyper_a['INPUT_DIM'], hyper_a['HID_DIM'], hyper_a['NUM_LAYERS'], len(vocabulary)).to(device)
-    model_audio.load_state_dict(torch.load("./models/model_AV10.pt"))
+    model_audio = lstmDecoder.only_Decoder2(hyper_a['INPUT_DIM'], hyper_a['HID_DIM'], hyper_a['NUM_LAYERS'], len(vocabulary)).to(device)
+    model_audio.load_state_dict(torch.load("./models/modeltest_24.pt"))
     model_audio.eval()
     # Training loop
 
@@ -137,15 +139,17 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             with torch.no_grad():
-                output_a, hidden_a, cell_a = model_audio(audio_input, len_landmark)
-                hidden_a = hidden_a.permute(1,0,2).flatten(1)
-                cell_a = cell_a.permute(1,0,2).flatten(1)
+                #output_a, hidden_a, cell_a = model_audio(audio_input, len_landmark)
+                output_a = model_audio(audio_input, len_landmark)
+                #hidden_a = hidden_a.permute(1,0,2).flatten(1)
+                #cell_a = cell_a.permute(1,0,2).flatten(1)
             
-            hidden = hidden.permute(1,0,2).flatten(1)
-            cell = cell.permute(1,0,2).flatten(1)
+            #hidden = hidden.permute(1,0,2).flatten(1)
+            #cell = cell.permute(1,0,2).flatten(1)
 
             ct_l = 0.5*ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
-            csim = -1*F.cosine_similarity(hidden, hidden_a)
+            #csim = -1*F.cosine_similarity(hidden, hidden_a)
+            csim = cate(output.permute(1,0,2)[0], torch.argmax(output_a, dim=2)[0])
             #csim = MSE_loss(hidden, hidden_a)
             loss = ct_l+csim #+1e-3*F.cosine_similarity(cell, cell_a)
             loss.backward()

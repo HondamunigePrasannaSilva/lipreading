@@ -65,7 +65,7 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 # Function to train a model.
-def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "test_1"):
+def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, modeltitle= "test_2"):
     
     #telling wand to watch
     #if wandb.run is not None:
@@ -147,7 +147,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             val_accuracy = test(model, valloader, vocabulary, ctc_loss)
             wandb.log({"val_loss":val_accuracy})
 
-        if epoch%5 == 0:
+        if epoch%2 == 0:
             torch.save(model.state_dict(), "models/model"+str(modeltitle)+str(epoch)+".pt")
             
 

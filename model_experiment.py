@@ -52,3 +52,17 @@ class only_Decoder2(nn.Module):
         #prediction = [batch size, output dim]
         
         return prediction, hidden, cell#
+    
+class MLP_emb(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.linear1 = nn.Linear(204, 512)
+        self.actv = nn.ReLU()
+        self.linear2 = nn.Linear(512, 768)
+
+    def forward(self, x):
+        x = self.linear1(x)
+        x = self.actv(x)
+        x = self.linear2(x)
+        return x

@@ -209,6 +209,15 @@ class only_Decoder2(nn.Module):
         #prediction = [batch size, output dim]
         
         return prediction#, hidden
+
+
+    def forward(self, x):
+        """
+        Arguments:
+            x: Tensor, shape ``[batch_size, seq_len, embedding_dim]``
+        """
+        x = x + self.pe[:x.size(1)]
+        return self.dropout(x)
     
 
 class Transformer_test(nn.Module):
@@ -217,15 +226,20 @@ class Transformer_test(nn.Module):
         
         self.output_dim = output_dim
 
-        encoder_layer = nn.TransformerEncoderLayer(d_model=204, nhead=3)
-        self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+        #encoder_layer = nn.TransformerEncoderLayer(d_model=204, nhead=3)
+        #self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+
+        self.fc_in = nn.Linear(204, 768)
+        #self.actv = nn.ReLU()
+        decoder_layer = nn.TransformerDecoderLayer(d_model=768, nhead=3)
+        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
         
-        self.fc_out = nn.Linear(204, output_dim)
+        self.fc_out = nn.Linear(768, output_dim)
 
         #self.tan = nn.Tanh()
         
         
-    def forward(self, input):
+    def forward(self, land, len_land, audio, mask = None):
         
         #input = [batch size]
         #hidden = [n directions*num_layers, batch size, hid dim]
@@ -234,8 +248,15 @@ class Transformer_test(nn.Module):
         #packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
 
         #output, _ = self.rnn(packed_seq.to(torch.float32))
+        
 
-        output = self.transformer(input)
+        land = self.fc_in(land)
+
+        if mask == None:
+            audio = linear_interpolation(audio, 50, 60,output_len=len_land)
+            output = self.transformer_decoder(land, audio)
+        else:
+            output = self.transformer_decoder(land, audio, memory_mask = mask)
 
         #outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
         
@@ -248,4 +269,84 @@ class Transformer_test(nn.Module):
         
         #prediction = [batch size, output dim]
         
-        return prediction#, hidden
+        return prediction, output#, hidden
+
+class Transformer_test2(nn.Module):
+    def __init__(self, output_dim):
+        super().__init__()
+        
+        self.output_dim = output_dim
+
+        #encoder_layer = nn.TransformerEncoderLayer(d_model=204, nhead=3)
+        #self.transformer = nn.TransformerEncoder(encoder_layer, num_layers=2)
+
+        self.fc_in = nn.Linear(204, 768)
+        #self.actv = nn.ReLU()
+        decoder_layer = nn.TransformerDecoderLayer(d_model=768, nhead=3)
+        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
+        
+        self.rnn = nn.LSTM(768, 64, num_layers=2, bidirectional=True, batch_first=True)#, dropout = dropout
+        
+        self.fc_out = nn.Linear(2*64, output_dim)
+
+        #self.tan = nn.Tanh()
+        
+        
+    def forward(self, land, len_land, audio, mask = None):
+        
+        #input = [batch size]
+        #hidden = [n directions*num_layers, batch size, hid dim]
+        
+        #input = [batch size, 1]
+        #packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
+
+        #output, _ = self.rnn(packed_seq.to(torch.float32))
+        
+
+        land = self.fc_in(land)
+
+        if mask == None:
+            audio = linear_interpolation(audio, 50, 60,output_len=len_land)
+            output = self.transformer_decoder(land, audio)
+        else:
+            output = self.transformer_decoder(land, audio, memory_mask = mask)
+
+        #outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
+        
+        #output = [seq len, batch size, hid dim * n directions]
+        #hidden = [n layers * n directions, batch size, hid dim]
+
+        seq, _ = self.rnn(output)
+        
+        prediction = self.fc_out(seq)
+
+        #prediction = self.tan(prediction)
+        
+        #prediction = [batch size, output dim]
+        
+        return prediction, output#, hidden
+    
+
+class MLP_emb(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.linear0 = nn.Linear(204, 768)
+        self.linear1 = nn.Linear(768, 512)
+        self.linear2 = nn.Linear(512, 768)#256
+        """self.linear3 = nn.Linear(256, 512)
+        self.linear4 = nn.Linear(512, 768)"""
+
+        self.actv = nn.ReLU()
+
+    def forward(self, x):
+        x = self.linear0(x)
+        x = self.actv(x)
+        x = self.linear1(x)
+        x = self.actv(x)
+        x = self.linear2(x)
+        """x = self.actv(x)
+        x = self.linear3(x)
+        x = self.actv(x)
+        x = self.linear4(x)"""
+        return x

@@ -22,7 +22,11 @@ class only_Decoder2(nn.Module):
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.rnn = nn.LSTM(input_dim, hid_dim, num_layers=n_layers, bidirectional=True, batch_first=True)#, dropout = dropout
+        self.emb = MLP_emb().to(device)
+        self.emb.load_state_dict(torch.load("./models/model_embexp6_trvalloss070.pt"))
+        #+substitute input_dim with 768
+
+        self.rnn = nn.LSTM(768, hid_dim, num_layers=n_layers, bidirectional=True, batch_first=True)#, dropout = dropout
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
 
@@ -38,7 +42,10 @@ class only_Decoder2(nn.Module):
         #packed_seq = nn.utils.rnn.pack_padded_sequence(input.permute(1,0,2), len_.to('cpu'), enforce_sorted=False)
 
         #output, _ = self.rnn(packed_seq.to(torch.float32))
-        output, (hidden, cell) = self.rnn(input.to(torch.float32))#MODIFIED
+        with torch.no_grad():
+            input = self.emb(input.to(torch.float32))
+
+        output, (hidden, cell) = self.rnn(input)#MODIFIED
 
         #outputs, _ = nn.utils.rnn.pad_packed_sequence(output) 
         
@@ -57,12 +64,22 @@ class MLP_emb(nn.Module):
     def __init__(self):
         super().__init__()
 
-        self.linear1 = nn.Linear(204, 512)
+        self.linear0 = nn.Linear(204, 768)
+        self.linear1 = nn.Linear(768, 512)
+        self.linear2 = nn.Linear(512, 768)#256
+        """self.linear3 = nn.Linear(256, 512)
+        self.linear4 = nn.Linear(512, 768)"""
+
         self.actv = nn.ReLU()
-        self.linear2 = nn.Linear(512, 768)
 
     def forward(self, x):
+        x = self.linear0(x)
+        x = self.actv(x)
         x = self.linear1(x)
         x = self.actv(x)
         x = self.linear2(x)
+        """x = self.actv(x)
+        x = self.linear3(x)
+        x = self.actv(x)
+        x = self.linear4(x)"""
         return x

@@ -39,7 +39,7 @@ You will need the weights of the LSTM trained on audio"""
 
 def model_pipeline():
 
-    with wandb.init(project="AudioLand-3D", config=hyper):
+    with wandb.init(project="AudioLand-3D", config=hyper, mode="disabled"):
         #access all HPs through wandb.config, so logging matches executing
         config = wandb.config
 
@@ -85,16 +85,20 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
     
     #telling wand to watch
     #if wandb.run is not None:
-    cate = nn.CrossEntropyLoss()
     wandb.watch(model, optimizer, log="all", log_freq=320)
     #Load wav2vec2
     bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
     wav2vec = bundle.get_model().to(device)
     sample_rate = 22000
-    MSE_loss=nn.MSELoss()
+
+    #CHOSE THE SIMILARITY LOSS
+    #sim_loss = nn.MSELoss()
+    sim_loss = nn.CrossEntropyLoss()
+
     model.train()
 
     model_audio = only_Decoder(hyper_a['INPUT_DIM'], hyper_a['HID_DIM'], hyper_a['NUM_LAYERS'], len(vocabulary)).to(device)
+    #HERE  WE HAVE TO LOAD THE WEIGHTS OF AN LSTM TRAINED ON AUDIO
     model_audio.load_state_dict(torch.load("./models/modeltest_24.pt"))
     model_audio.eval()
     # Training loop
@@ -135,22 +139,28 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
 
             optimizer.zero_grad()
 
-            output, hidden, cell = model(landmarks,len_landmark )
+            output, hidden, cell = model(landmarks,len_landmark)
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             with torch.no_grad():
                 #output_a, hidden_a, cell_a = model_audio(audio_input, len_landmark)
-                output_a = model_audio(audio_input, len_landmark)
-                #hidden_a = hidden_a.permute(1,0,2).flatten(1)
+                audio_input = linear_interpolation(audio_input, 50, 60,output_len=len_landmark)
+                output_a, hidden_a, _ = model_audio(audio_input, len_landmark)
+                hidden_a = hidden_a.permute(1,0,2).flatten(1)
                 #cell_a = cell_a.permute(1,0,2).flatten(1)
             
-            #hidden = hidden.permute(1,0,2).flatten(1)
+            hidden = hidden.permute(1,0,2).flatten(1)
             #cell = cell.permute(1,0,2).flatten(1)
 
             ct_l = 0.5*ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
             #csim = -1*F.cosine_similarity(hidden, hidden_a)
-            csim = cate(output.permute(1,0,2)[0], torch.argmax(output_a, dim=2)[0])
-            #csim = MSE_loss(hidden, hidden_a)
+            
+            #IF MSE IS CHOSEN AS SIMILARITY LOSS
+            #csim = sim_loss(hidden, hidden_a)
+            #IF CROSS ENTROPY IS CHOSEN AS SIMILARITY LOSS
+            csim = sim_loss(output.permute(1,0,2)[0], torch.argmax(output_a, dim=2)[0])
+            
+
             loss = ct_l+csim #+1e-3*F.cosine_similarity(cell, cell_a)
             loss.backward()
 

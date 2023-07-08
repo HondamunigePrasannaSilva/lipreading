@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 hyper = {
     'LANDMARK_DIM' : 68,
     'INPUT_DIM' : 68*3,
-    'HID_DIM' : 128,
+    'HID_DIM' : 64,
     'BATCH_SIZE': 1,
     'EPOCHS': 5000,
     'NUM_LAYERS': 2,

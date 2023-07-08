@@ -3,7 +3,7 @@ import torch
 import wandb
 from data.vocaset import *
 from utils import *
-from lstmDecoder import *
+from seq2seq import *
 import tqdm 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -19,6 +19,8 @@ hyper = {
     'SERVER':'Yoda'
 }
 
+"""-------TRAIN OF GRU MODELS-------"""
+"""OnlyDecoder and Seq2Seq"""
 
 
 def model_pipeline():
@@ -53,9 +55,12 @@ def create(config):
     vocabulary = create_vocabulary(blank='@')
 
     # define the models
-    #model = only_Decoder2(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, len(vocabulary)).to(device)
-    model = Transformer_test(len(vocabulary)).to(device)
-    #m = torch.compile(model)
+    #IF YOU WANT TO TRAIN oNLYDECODER
+    #model = only_Decoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS, len(vocabulary)).to(device)
+    #IF YOU WANT TO TRAIN SEQ2SEQ
+    enc = Encoder(config.INPUT_DIM, config.HID_DIM, config.NUM_LAYERS)
+    dec = Decoder(config.HID_DIM, config.NUM_LAYERS, len(vocabulary))
+    model = Seq2Seq(enc, dec, device).to(device)
 
     # Define the CTC loss function
     ctc_loss = nn.CTCLoss()
@@ -102,7 +107,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             len_label = len_label.to(device)
             optimizer.zero_grad()
 
-            output = model(landmarks)
+            output = model(landmarks,len_landmark )
             output = output.permute(1, 0, 2)#had to permute for the ctc loss. it acceprs [seq_len, batch_size, "num_class"]
 
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
@@ -119,7 +124,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             #progress_bar.set_postfix(loss=loss.item())  # Update the loss value
             progress_bar.set_postfix(loss=np.mean(losses))  # Update the loss value
             progress_bar.update(1)
-            if epoch%500 == 0:
+            if epoch%1 == 0:
                 real_sentences, pred_sentences = write_results(len_label, label_list, output.detach(), trainloader.batch_size, vocabulary, real_sentences, pred_sentences)
         
         # endfor batch 
@@ -128,7 +133,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
         wandb.log({"epoch":epoch, "loss":np.mean(losses)})
         
         # save the model
-        if epoch%10 == 0:
+        if epoch%1 == 0:
             val_accuracy = test(model, valloader, vocabulary, ctc_loss)
             wandb.log({"val_loss":val_accuracy})
 
@@ -136,8 +141,8 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             torch.save(model.state_dict(), "models/model"+str(modeltitle)+"5.pt")
             
 
-        if epoch%500 == 0:
-            save_results(f"./results/results_{epoch}_4.txt", real_sentences, pred_sentences, overwrite=True)
+        if epoch%1 == 0:
+            save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
     return
 
@@ -166,7 +171,7 @@ def test(model, valloader, vocabulary, ctc_loss):
             label = label.to(device)
             len_label = len_label.to(device)
 
-            output = model(landmarks)
+            output = model(landmarks, len_landmark)
             output = output.permute(1, 0, 2)
             # scrittura nel file del outuput e della frase originale
             loss = ctc_loss(torch.nn.functional.log_softmax(output, dim=2), label, len_landmark, len_label)
@@ -176,7 +181,7 @@ def test(model, valloader, vocabulary, ctc_loss):
 
         print(":>",np.mean(losses))
         pred_sentences = list(map(lambda x:process_string(x),pred_sentences))
-        save_results(f"./results/validation_4.txt", real_sentences, pred_sentences, overwrite=True)
+        save_results(f"./results/validation.txt", real_sentences, pred_sentences, overwrite=True)
 
         
 

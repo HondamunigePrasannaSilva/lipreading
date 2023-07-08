@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import wandb
 from data.vocaset import *
 from utils import *
-from model_experiment import *
+from transformers import *
 import lstmDecoder
 import tqdm 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -34,7 +34,8 @@ hyper_a = {
     'SERVER':'W'
 }
 
-
+"""Train the transformers decoder variants. From here you will get the weights of an MLP
+from the train_MLP pipeline, that can e used to train an LSTM in train_LSTM"""
 
 def model_pipeline():
 
@@ -68,9 +69,10 @@ def create(config):
     vocabulary = create_vocabulary(blank='@')
 
     # define the models
-    model = lstmDecoder.Transformer_test2(len(vocabulary)).to(device)
-    #m = torch.compile(model)
-
+    #IF YOU WANT TO TRAIN THE TRANSFORMER WITH ONLY AN MLP HEAD
+    #model = Transformer_Decoder(len(vocabulary)).to(device)
+    #IF YOU WANT TO TRAIN THE TRANSFORMER WITH LSTM HEAD
+    model = Transformer_Decoder_LSTM(len(vocabulary)).to(device)
     # Define the CTC loss function
     ctc_loss = nn.CTCLoss()
 
@@ -80,7 +82,7 @@ def create(config):
     return model, ctc_loss, optimizer,trainloader, valloader, vocabulary
 
 
-def gigio(model):
+def train_MLP(model):
     model_emb = lstmDecoder.MLP_emb().to(device)
     optimizer = optim.Adam(model_emb.parameters(), lr=3e-2)
     mse_loss = nn.MSELoss()
@@ -263,7 +265,7 @@ def train(model, ctc_loss, optimizer,trainloader, vocabulary, config,valloader, 
             save_results(f"./results/results_{epoch}.txt", real_sentences, pred_sentences, overwrite=True)
 
         """if epoch % 5 == 0:
-            gigio(model)"""
+            train_MLP(model)"""
 
     return
 

@@ -22,10 +22,7 @@ class Encoder(nn.Module):
     def __init__(self, input_dim, hid_dim, num_layers):
         super().__init__()
         
-        self.hid_dim = hid_dim
-
-        
-        self.rnn = nn.GRU(input_size=input_dim, hidden_size=self.hid_dim, bidirectional=True, batch_first=True, num_layers=num_layers)
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=hid_dim, bidirectional=True, batch_first=True, num_layers=num_layers)
         
     def forward(self, x):
 
@@ -39,12 +36,10 @@ class Encoder(nn.Module):
 
         #print("ENCODER: hid.shape: ", hid.shape)
         return hid
-    
-
 
 
 class Decoder(nn.Module):
-    def __init__(self, output_dim, hid_dim, num_layers):
+    def __init__(self, hid_dim, num_layers, output_dim):
         super().__init__()
         
         self.output_dim = output_dim
@@ -99,7 +94,7 @@ class Seq2Seq(nn.Module):
         hidden = self.encoder(src)
         #hidden = hidden.unsqueeze(1)
         
-        #first input to the decoder is the <blank> token
+        #first input to the decoder is the "#" token
         input = torch.full((batch_size , 1 , 1), 1, dtype=torch.long).to(self.device)
         
         for t in range(0, trg_len):
@@ -109,7 +104,6 @@ class Seq2Seq(nn.Module):
 
             output, hidden = self.decoder(input, hidden)
             
-            #output = output.unsqueeze(0)#ADDED TO BE CHECKED
 
             #place predictions in a tensor holding predictions for each token
             outputs[t] = output[:, 0]
@@ -119,7 +113,7 @@ class Seq2Seq(nn.Module):
 
             input = top1
         
-        return outputs
+        return outputs.permute(1, 0, 2)#Added for compatibility with the training of OnlyDecoder model
     
 
 class only_Decoder(nn.Module):
@@ -129,7 +123,7 @@ class only_Decoder(nn.Module):
         self.output_dim = output_dim
         self.hid_dim = hid_dim
 
-        self.rnn = nn.GRU(input_size=input_dim, hidden_size=128, bidirectional=True, batch_first=True, num_layers=num_layers)
+        self.rnn = nn.GRU(input_size=input_dim, hidden_size=hid_dim, bidirectional=True, batch_first=True, num_layers=num_layers)
         
         self.fc_out = nn.Linear(2*hid_dim, output_dim)
 
